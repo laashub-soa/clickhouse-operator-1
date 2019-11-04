@@ -1,0 +1,7 @@
+apiVersion: clickhouse.sensetime.com/v1
+kind: ClickHouseCluster
+metadata:
+  name: example-clickhousecluster
+spec:
+  # Add fields here
+  size: 3
