@@ -123,11 +123,10 @@ func (r *ReconcileClickHouseCluster) updateClickHouseStatus(
 	return
 }
 
+func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouseCluster) error {
 
-func(r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouseCluster) error {
 	return nil
 }
-
 
 // CheckNonAllowedChanges - checks if there are some changes on CRD that are not allowed on statefulset
 // If a non Allowed Changed is Find we won't Update associated kubernetes objects, but we will put back the old value
