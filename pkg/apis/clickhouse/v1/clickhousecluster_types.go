@@ -1,17 +1,16 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	AnnotationLastApplied string = "clickhouse.sensetime.com/last-applied-configuration"
+	ClusterPhaseInitial   string = "Initializing"
 
-	ClusterPhaseInitial string = "Initializing"
+	DefaultClickHouseImage string = "registry.sensetime.com/diamond/clickhouse-server:latest"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ClickHouseClusterSpec defines the desired state of ClickHouseCluster
 // +k8s:openapi-gen=true
@@ -19,11 +18,20 @@ type ClickHouseClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	Cluster      Cluster `json:"clusters,omitempty"`
-	DataCapacity string  `json:"dataCapacity,omitempty"`
+	Image string `json:"image,omitempty"`
+
+	//DeletePVC defines if the PVC must be deleted when the cluster is deleted
+	//it is false by default
+	DeletePVC bool `json:"deletePVC,omitempty"`
+
+	ShardsCount   int32  `json:"shardsCount,omitempty"`
+	ReplicasCount int32  `json:"replicasCount,omitempty"`
+	DataCapacity  string `json:"dataCapacity,omitempty"`
 
 	//Define StorageClass for Persistent Volume Claims in the local storage.
 	DataStorageClass string `json:"dataStorageClass,omitempty"`
+
+	PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
 }
 
 // ClickHouseClusterStatus defines the observed state of ClickHouseCluster
@@ -52,16 +60,16 @@ func (c *ClickHouseCluster) SetDefaults() bool {
 		c.Status.Status = ClusterPhaseInitial
 		changed = true
 	}
-	if c.Spec.Cluster.Name == "" {
-		c.Spec.Cluster.Name = c.Name
+	if c.Spec.Image == "" {
+		c.Spec.Image = DefaultClickHouseImage
 		changed = true
 	}
-	if c.Spec.Cluster.ShardsCount == 0 {
-		c.Spec.Cluster.ShardsCount = 1
+	if c.Spec.ShardsCount == 0 {
+		c.Spec.ShardsCount = 1
 		changed = true
 	}
-	if c.Spec.Cluster.ReplicasCount == 0 {
-		c.Spec.Cluster.ReplicasCount = 1
+	if c.Spec.ReplicasCount == 0 {
+		c.Spec.ReplicasCount = 1
 		changed = true
 	}
 	return changed
@@ -74,12 +82,6 @@ type ClickHouseClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClickHouseCluster `json:"items"`
-}
-
-type Cluster struct {
-	Name          string `json:"name"`
-	ShardsCount   int    `json:"shardsCount,omitempty"`
-	ReplicasCount int    `json:"replicasCount,omitempty"`
 }
 
 func init() {

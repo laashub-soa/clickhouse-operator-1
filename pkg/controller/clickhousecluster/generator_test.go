@@ -20,7 +20,8 @@ func (g *GeneratorTestSuite) SetupTest() {
 			Namespace: "default",
 		},
 		Spec: v1.ClickHouseClusterSpec{
-			Cluster: v1.Cluster{Name: "demo", ShardsCount: 2, ReplicasCount: 3},
+			ShardsCount:   2,
+			ReplicasCount: 3,
 		},
 		Status: v1.ClickHouseClusterStatus{},
 	}
