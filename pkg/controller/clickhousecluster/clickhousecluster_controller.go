@@ -126,7 +126,7 @@ func (r *ReconcileClickHouseCluster) updateClickHouseStatus(
 }
 
 func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouseCluster) error {
-	var generator = Generator{}
+	var generator = NewGenerator(instance)
 
 	//Service for Clickhouse
 	service := generator.GenerateService()

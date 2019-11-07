@@ -27,8 +27,8 @@ type Generator struct {
 	clickHouseCluster *v1.ClickHouseCluster
 }
 
-func NewCreator() *Generator {
-	return &Generator{}
+func NewGenerator(chc *v1.ClickHouseCluster) *Generator {
+	return &Generator{clickHouseCluster: chc}
 }
 
 func (c *Generator) labels() map[string]string {
@@ -46,17 +46,26 @@ func (c *Generator) statefulsetName() string {
 }
 
 func (c *Generator) generateRemoteServersXML() string {
-	return ""
-	//servers := YandexRemoteServers{
-	//	Yandex:RemoteServers{RemoteServer: map[string]Cluster{
-	//		c.clickHouseCluster.Name: Shard{
-	//			InternalReplication: false,
-	//			Replica:             Replica{
-	//				Host:
-	//			},
-	//		},
-	//	}},
-	//}
+	shards := make([]Shard, c.clickHouseCluster.Spec.Cluster.ShardsCount)
+	statefulset := c.statefulsetName()
+	index := 0
+	for i := range shards {
+		replicas := make([]Replica, c.clickHouseCluster.Spec.Cluster.ReplicasCount)
+		for j := range replicas {
+			replicas[j].Host = fmt.Sprintf("%s-%d", statefulset, index)
+			replicas[j].Port = chDefaultClientPortNumber
+			index++
+		}
+		shards[i].InternalReplication = true
+		shards[i].Replica = replicas
+	}
+
+	servers := YandexRemoteServers{
+		Yandex: RemoteServers{RemoteServer: map[string]Cluster{
+			c.clickHouseCluster.Name: {shards},
+		}},
+	}
+	return ParseXML(servers)
 }
 
 func (c *Generator) generateZookeeperXML() string {

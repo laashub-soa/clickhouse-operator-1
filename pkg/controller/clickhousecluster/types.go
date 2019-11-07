@@ -2,7 +2,7 @@ package clickhousecluster
 
 type Replica struct {
 	Host string `xml:"host"`
-	Port string `xml:"port"`
+	Port int    `xml:"port"`
 }
 
 type Shard struct {

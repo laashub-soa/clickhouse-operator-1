@@ -15,7 +15,7 @@ func TestParseXML(t *testing.T) {
 							Replica: []Replica{
 								{
 									Host: "host1",
-									Port: "8080",
+									Port: 8080,
 								},
 							},
 						},
@@ -28,11 +28,11 @@ func TestParseXML(t *testing.T) {
 							Replica: []Replica{
 								{
 									Host: "host1",
-									Port: "8081",
+									Port: 8081,
 								},
 								{
 									Host: "host2",
-									Port: "8082",
+									Port: 8082,
 								},
 							},
 						},
@@ -41,11 +41,11 @@ func TestParseXML(t *testing.T) {
 							Replica: []Replica{
 								{
 									Host: "host3",
-									Port: "8083",
+									Port: 8083,
 								},
 								{
 									Host: "host4",
-									Port: "8084",
+									Port: 8084,
 								},
 							},
 						},

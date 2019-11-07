@@ -9,6 +9,7 @@ require (
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/pflag v1.0.3
+	github.com/stretchr/testify v1.3.0
 	google.golang.org/genproto v0.0.0-20181016170114-94acd270e44e // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	k8s.io/api v0.0.0
