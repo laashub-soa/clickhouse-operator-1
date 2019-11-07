@@ -26,14 +26,14 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseCluster(ref common.ReferenceCallbac
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. RemoteServer may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. RemoteServer should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -67,8 +67,60 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 			SchemaProps: spec.SchemaProps{
 				Description: "ClickHouseClusterSpec defines the desired state of ClickHouseCluster",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"image": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClickHouse Docker image",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"deletePVC": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DeletePVC defines if the PVC must be deleted when the cluster is deleted it is false by default",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"shardsCount": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Shards count",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"replicasCount": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Replicas count",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"dataCapacity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The storage capacity",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"dataStorageClass": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Define StorageClass for Persistent Volume Claims in the local storage.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"podSpec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "User defined pod spec",
+							Ref:         ref("k8s.io/api/core/v1.PodSpec"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.PodSpec"},
 	}
 }
 
@@ -78,6 +130,14 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterStatus(ref common.ReferenceC
 			SchemaProps: spec.SchemaProps{
 				Description: "ClickHouseClusterStatus defines the observed state of ClickHouseCluster",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
 			},
 		},
 	}

@@ -4,4 +4,4 @@ metadata:
   name: example-clickhousecluster
 spec:
   # Add fields here
-  size: 3
+  deletePVC: true

@@ -82,7 +82,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	reqLogger.Info("Reconciling ClickHouseCluster")
 
 	requeue5 := reconcile.Result{RequeueAfter: 5 * time.Second}
-	requeue := reconcile.Result{Requeue: true}
+	//requeue := reconcile.Result{Requeue: true}
 	forget := reconcile.Result{}
 
 	// Fetch the ClickHouseCluster instance
@@ -101,7 +101,8 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 			logrus.WithFields(logrus.Fields{
 				"cluster":   instance.Name,
 				"namespace": instance.Namespace}).Info("Initialization: Update ClickHouseCluster")
-			return requeue, r.client.Update(context.TODO(), instance)
+			err = r.client.Update(context.TODO(), instance)
+			return requeue5, err
 		}
 	}
 

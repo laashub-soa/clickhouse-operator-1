@@ -15,22 +15,26 @@ const (
 // ClickHouseClusterSpec defines the desired state of ClickHouseCluster
 // +k8s:openapi-gen=true
 type ClickHouseClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	//ClickHouse Docker image
 	Image string `json:"image,omitempty"`
 
 	//DeletePVC defines if the PVC must be deleted when the cluster is deleted
 	//it is false by default
 	DeletePVC bool `json:"deletePVC,omitempty"`
 
-	ShardsCount   int32  `json:"shardsCount,omitempty"`
-	ReplicasCount int32  `json:"replicasCount,omitempty"`
-	DataCapacity  string `json:"dataCapacity,omitempty"`
+	//Shards count
+	ShardsCount int32 `json:"shardsCount,omitempty"`
+
+	//Replicas count
+	ReplicasCount int32 `json:"replicasCount,omitempty"`
+
+	//The storage capacity
+	DataCapacity string `json:"dataCapacity,omitempty"`
 
 	//Define StorageClass for Persistent Volume Claims in the local storage.
 	DataStorageClass string `json:"dataStorageClass,omitempty"`
 
+	//User defined pod spec
 	PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
 }
 
