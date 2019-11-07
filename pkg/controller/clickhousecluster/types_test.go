@@ -15,13 +15,19 @@ func TestToString(t *testing.T) {
 							Host: "host1",
 							Port: "8080",
 						},
-					}},
+					},
+				},
+				"another": {
+					Shard: Shard{
+						InternalReplication: false,
+						Replica: Replica{
+							Host: "host2",
+							Port: "8081",
+						},
+					},
+				},
 			},
 		},
 	}
-	x, err := yandex.ToString()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(x)
+	t.Log(ParseXML(yandex))
 }
