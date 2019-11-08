@@ -110,17 +110,9 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 							Format:      "",
 						},
 					},
-					"podSpec": {
-						SchemaProps: spec.SchemaProps{
-							Description: "User defined pod spec",
-							Ref:         ref("k8s.io/api/core/v1.PodSpec"),
-						},
-					},
 				},
 			},
 		},
-		Dependencies: []string{
-			"k8s.io/api/core/v1.PodSpec"},
 	}
 }
 

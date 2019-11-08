@@ -1,7 +1,6 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,7 +34,7 @@ type ClickHouseClusterSpec struct {
 	DataStorageClass string `json:"dataStorageClass,omitempty"`
 
 	//User defined pod spec
-	PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
+	//PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
 }
 
 // ClickHouseClusterStatus defines the observed state of ClickHouseCluster
@@ -48,7 +47,6 @@ type ClickHouseClusterStatus struct {
 
 // ClickHouseCluster is the Schema for the clickhouseclusters API
 // +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
 // +kubebuilder:resource:path=clickhouseclusters,scope=Namespaced
 type ClickHouseCluster struct {
 	metav1.TypeMeta   `json:",inline"`
