@@ -55,13 +55,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner ClickHouseCluster
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &clickhousev1.ClickHouseCluster{},
-	})
-	if err != nil {
-		return err
-	}
+	//err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+	//	IsController: true,
+	//	OwnerType:    &clickhousev1.ClickHouseCluster{},
+	//})
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -102,7 +102,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 				"cluster":   instance.Name,
 				"namespace": instance.Namespace}).Info("Initialization: Update ClickHouseCluster")
 			err = r.client.Update(context.TODO(), instance)
-			return requeue5, err
+			return forget, err
 		}
 	}
 
@@ -117,7 +117,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return requeue5, err
 	}
 
-	return requeue5, nil
+	return forget, nil
 }
 
 func (r *ReconcileClickHouseCluster) updateClickHouseStatus(
@@ -143,11 +143,11 @@ func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouse
 	}
 
 	// ConfigMap common for all users resources in CHI
-	configMapUsers := generator.CreateConfigMapUsers()
-	if err := r.ReconcileConfigMap(configMapUsers); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": configMapUsers.Namespace, "name": configMapUsers.Name, "error": err}).Error("create configmap error")
-		return err
-	}
+	//configMapUsers := generator.CreateConfigMapUsers()
+	//if err := r.ReconcileConfigMap(configMapUsers); err != nil {
+	//	logrus.WithFields(logrus.Fields{"namespace": configMapUsers.Namespace, "name": configMapUsers.Name, "error": err}).Error("create configmap error")
+	//	return err
+	//}
 
 	return nil
 }
@@ -198,7 +198,9 @@ func (r *ReconcileClickHouseCluster) ReconcileService(service *corev1.Service) e
 		return err
 	}
 
-	logrus.Infof("Update Service %s/%s", service.Namespace, service.Name)
+	logrus.WithFields(logrus.Fields{
+		"service":   service.Name,
+		"namespace": service.Namespace}).Info("Update Service")
 	// spec.resourceVersion is required in order to update Service
 	service.ResourceVersion = curService.ResourceVersion
 	// spec.clusterIP field is immutable, need to use already assigned value
@@ -217,11 +219,16 @@ func (r *ReconcileClickHouseCluster) ReconcileConfigMap(configMap *corev1.Config
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object with such name not found - create it
+			logrus.WithFields(logrus.Fields{
+				"configmap":   configMap.Name,
+				"namespace": configMap.Namespace}).Info("Create ConfigMap")
 			return r.client.Create(context.TODO(), configMap)
 		}
 		return err
 	}
 
-	logrus.Infof("Update ConfigMap %s/%s", configMap.Namespace, configMap.Name)
+	logrus.WithFields(logrus.Fields{
+		"configmap":   configMap.Name,
+		"namespace": configMap.Namespace}).Info("Update ConfigMap")
 	return r.client.Update(context.TODO(), configMap)
 }

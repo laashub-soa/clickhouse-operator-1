@@ -36,7 +36,7 @@ type ClickHouseClusterSpec struct {
 	//User defined pod spec
 	//PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
 }
-
+// Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564
 // ClickHouseClusterStatus defines the observed state of ClickHouseCluster
 // +k8s:openapi-gen=true
 type ClickHouseClusterStatus struct {
