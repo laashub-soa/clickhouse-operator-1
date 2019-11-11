@@ -8,6 +8,7 @@ import (
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -90,6 +91,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			logrus.Info("Delete ClickHouseCluster")
 			return forget, nil
 		}
 		return forget, err
@@ -100,7 +102,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		if changed {
 			logrus.WithFields(logrus.Fields{
 				"cluster":   instance.Name,
-				"namespace": instance.Namespace}).Info("Initialization: Update ClickHouseCluster")
+				"namespace": instance.Namespace}).Info("Update ClickHouseCluster")
 			err = r.client.Update(context.TODO(), instance)
 			return forget, err
 		}
@@ -138,17 +140,21 @@ func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouse
 
 	commonConfigMap := generator.GenerateCommonConfigMap()
 	if err := r.ReconcileConfigMap(commonConfigMap); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": commonConfigMap.Namespace, "name": commonConfigMap.Name, "error": err}).Error("create configmap error")
+		logrus.WithFields(logrus.Fields{"namespace": commonConfigMap.Namespace, "name": commonConfigMap.Name, "error": err}).Error("create command configmap error")
 		return err
 	}
 
-	// ConfigMap common for all users resources in CHI
-	//configMapUsers := generator.CreateConfigMapUsers()
-	//if err := r.ReconcileConfigMap(configMapUsers); err != nil {
-	//	logrus.WithFields(logrus.Fields{"namespace": configMapUsers.Namespace, "name": configMapUsers.Name, "error": err}).Error("create configmap error")
+	//userConfigMap := generator.generateUserConfigMap()
+	//if err := r.ReconcileConfigMap(userConfigMap); err != nil {
+	//	logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create user configmap error")
 	//	return err
 	//}
 
+	statefulSet := generator.GenerateStatefulSet()
+	if err := r.ReconcileStatefulSet(statefulSet); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("create statefulSet error")
+		return err
+	}
 	return nil
 }
 
@@ -220,7 +226,7 @@ func (r *ReconcileClickHouseCluster) ReconcileConfigMap(configMap *corev1.Config
 		if apierrors.IsNotFound(err) {
 			// Object with such name not found - create it
 			logrus.WithFields(logrus.Fields{
-				"configmap":   configMap.Name,
+				"configmap": configMap.Name,
 				"namespace": configMap.Namespace}).Info("Create ConfigMap")
 			return r.client.Create(context.TODO(), configMap)
 		}
@@ -228,7 +234,56 @@ func (r *ReconcileClickHouseCluster) ReconcileConfigMap(configMap *corev1.Config
 	}
 
 	logrus.WithFields(logrus.Fields{
-		"configmap":   configMap.Name,
+		"configmap": configMap.Name,
 		"namespace": configMap.Namespace}).Info("Update ConfigMap")
 	return r.client.Update(context.TODO(), configMap)
 }
+
+func (r *ReconcileClickHouseCluster) ReconcileStatefulSet(statefulSet *appsv1.StatefulSet) error {
+	// Check whether object with such name already exists in k8s
+	var curStatefulSet appsv1.StatefulSet
+
+	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: statefulSet.Namespace, Name: statefulSet.Name}, &curStatefulSet)
+
+	// Object with such name does not exist or error happened
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Object with such name not found - create it
+			logrus.WithFields(logrus.Fields{
+				"statefulset": statefulSet.Name,
+				"namespace":   statefulSet.Namespace}).Info("Create StatefulSet")
+			return r.client.Create(context.TODO(), statefulSet)
+		}
+		return err
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"statefulSet": statefulSet.Name,
+		"namespace":   statefulSet.Namespace}).Info("Update StatefulSet")
+	return r.client.Update(context.TODO(), statefulSet)
+}
+
+////Todo: use object replace statefulset/service/configmap
+//func (r *ReconcileClickHouseCluster) ReconcileObject(obj runtime.Object) error {
+//	// Check whether object with such name already exists in k8s
+//	var curObject runtime.Object
+//
+//	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: statefulSet.Namespace, Name: statefulSet.Name}, &curObject)
+//
+//	// Object with such name does not exist or error happened
+//	if err != nil {
+//		if apierrors.IsNotFound(err) {
+//			// Object with such name not found - create it
+//			logrus.WithFields(logrus.Fields{
+//				"statefulset":   statefulSet.Name,
+//				"namespace": statefulSet.Namespace}).Info("Create StatefulSet")
+//			return r.client.Create(context.TODO(), statefulSet)
+//		}
+//		return err
+//	}
+//
+//	logrus.WithFields(logrus.Fields{
+//		"configmap":   statefulSet.Name,
+//		"namespace": statefulSet.Namespace}).Info("Update ConfigMap")
+//	return r.client.Update(context.TODO(), statefulSet)
+//}

@@ -24,6 +24,10 @@ const (
 	filenameUsersXML         = "users.xml"
 	filenameZookeeperXML     = "zookeeper.xml"
 	filenameSettingsXML      = "settings.xml"
+
+	dirPathConfigd = "/etc/clickhouse-server/config.d/"
+	dirPathUsersd  = "/etc/clickhouse-server/users.d/"
+	dirPathConfd   = "/etc/clickhouse-server/conf.d/"
 )
 
 type Generator struct {
@@ -40,8 +44,26 @@ func (g *Generator) labels() map[string]string {
 	}
 }
 
+func (g *Generator) ownerReference() []metav1.OwnerReference {
+	ref := metav1.OwnerReference{
+		APIVersion: g.clickHouseCluster.APIVersion,
+		Kind:       g.clickHouseCluster.Kind,
+		Name:       g.clickHouseCluster.Name,
+		UID:        g.clickHouseCluster.UID,
+	}
+	return []metav1.OwnerReference{ref}
+}
+
 func (g *Generator) commonConfigMapName() string {
 	return fmt.Sprintf("clickhouse-%s-common-config", g.clickHouseCluster.Name)
+}
+
+func (g *Generator) userConfigMapName() string {
+	return fmt.Sprintf("clickhouse-%s-user-config", g.clickHouseCluster.Name)
+}
+
+func (g *Generator) macrosConfigMapName() string {
+	return fmt.Sprintf("clickhouse-%s-macros-config", g.clickHouseCluster.Name)
 }
 
 func (g *Generator) statefulsetName() string {
@@ -92,25 +114,36 @@ func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 	}
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      g.commonConfigMapName(),
-			Namespace: g.clickHouseCluster.Namespace,
-			Labels:    g.labels(),
+			Name:            g.commonConfigMapName(),
+			Namespace:       g.clickHouseCluster.Namespace,
+			Labels:          g.labels(),
+			OwnerReferences: g.ownerReference(),
 		},
 		// Data contains several sections which are to be several xml chopConfig files
 		Data: data,
 	}
 }
 
-func (g *Generator) CreateConfigMapUsers() *corev1.ConfigMap {
-	return nil
+func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            g.userConfigMapName(),
+			Namespace:       g.clickHouseCluster.Namespace,
+			Labels:          g.labels(),
+			OwnerReferences: g.ownerReference(),
+		},
+		// Data contains several sections which are to be several xml chopConfig files
+		Data: map[string]string{},
+	}
 }
 
 func (g *Generator) GenerateService() *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      g.clickHouseCluster.Name,
-			Namespace: g.clickHouseCluster.Namespace,
-			Labels:    g.labels(),
+			Name:            g.clickHouseCluster.Name,
+			Namespace:       g.clickHouseCluster.Namespace,
+			Labels:          g.labels(),
+			OwnerReferences: g.ownerReference(),
 		},
 		Spec: corev1.ServiceSpec{
 			// ClusterIP: templateDefaultsServiceClusterIP,
@@ -131,38 +164,76 @@ func (g *Generator) GenerateService() *corev1.Service {
 }
 
 func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet) {
-	container := corev1.Container{
-		Name:  ClickHouseContainerName,
-		Image: g.clickHouseCluster.Spec.Image,
-		Ports: []corev1.ContainerPort{
-			{
-				Name:          chDefaultHTTPPortName,
-				ContainerPort: chDefaultHTTPPortNumber,
-			},
-			{
-				Name:          chDefaultClientPortName,
-				ContainerPort: chDefaultClientPortNumber,
-			},
-			{
-				Name:          chDefaultInterServerPortName,
-				ContainerPort: chDefaultInterServerPortNumber,
-			},
+	statefulset.Spec.Template = corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   statefulset.Name,
+			Labels: g.labels(),
 		},
-		ReadinessProbe: &corev1.Probe{
-			Handler: corev1.Handler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/ping",
-					Port: intstr.Parse(chDefaultHTTPPortName),
-				},
-			},
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{},
+			Volumes:    []corev1.Volume{},
 		},
 	}
-	statefulset.Spec.Template.Spec.Containers = []corev1.Container{container}
+	statefulset.Spec.Template.Spec.Containers = []corev1.Container{
+		{
+			Name:  ClickHouseContainerName,
+			Image: g.clickHouseCluster.Spec.Image,
+			Ports: []corev1.ContainerPort{
+				{
+					Name:          chDefaultHTTPPortName,
+					ContainerPort: chDefaultHTTPPortNumber,
+				},
+				{
+					Name:          chDefaultClientPortName,
+					ContainerPort: chDefaultClientPortNumber,
+				},
+				{
+					Name:          chDefaultInterServerPortName,
+					ContainerPort: chDefaultInterServerPortNumber,
+				},
+			},
+			ReadinessProbe: &corev1.Probe{
+				Handler: corev1.Handler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/ping",
+						Port: intstr.Parse(chDefaultHTTPPortName),
+					},
+				},
+				InitialDelaySeconds: 10,
+				PeriodSeconds:       10,
+			},
+		},
+	}
+
+	// Add all ConfigMap objects as Volume objects of type ConfigMap
+	statefulset.Spec.Template.Spec.Volumes = append(
+		statefulset.Spec.Template.Spec.Volumes,
+		newVolumeForConfigMap(g.commonConfigMapName()),
+		//newVolumeForConfigMap(g.userConfigMapName()),
+		//newVolumeForConfigMap(g.macrosConfigMapName()),
+	)
+
+	// And reference these Volumes in each Container via VolumeMount
+	// So Pod will have ConfigMaps mounted as Volumes
+	for i := range statefulset.Spec.Template.Spec.Containers {
+		// Convenience wrapper
+		container := &statefulset.Spec.Template.Spec.Containers[i]
+		// Append to each Container current VolumeMount's to VolumeMount's declared in template
+		container.VolumeMounts = append(
+			container.VolumeMounts,
+			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
+			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
+			//newVolumeMount(g.macrosConfigMapName(), dirPathConfd),
+		)
+	}
 }
 
-func (g *Generator) GenerateStatefulset() *appsv1.StatefulSet {
+//TODO
+func (g *Generator) setupStatefulSetVolumeClaimTemplates(statefulset *appsv1.StatefulSet) {
+
+}
+
+func (g *Generator) GenerateStatefulSet() *appsv1.StatefulSet {
 	// Create apps.StatefulSet object
 	replicasNum := g.clickHouseCluster.Spec.ShardsCount * g.clickHouseCluster.Spec.ReplicasCount
 	// StatefulSet has additional label - ZK config fingerprint
@@ -189,7 +260,29 @@ func (g *Generator) GenerateStatefulset() *appsv1.StatefulSet {
 	}
 
 	g.setupStatefulSetPodTemplate(statefulSet)
-	//g.setupStatefulSetVolumeClaimTemplates(statefulSet, host)
+	g.setupStatefulSetVolumeClaimTemplates(statefulSet)
 
 	return statefulSet
+}
+
+// newVolumeForConfigMap returns corev1.Volume object with defined name
+func newVolumeForConfigMap(name string) corev1.Volume {
+	return corev1.Volume{
+		Name: name,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: name,
+				},
+			},
+		},
+	}
+}
+
+// newVolumeMount returns corev1.VolumeMount object with name and mount path
+func newVolumeMount(name, mountPath string) corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      name,
+		MountPath: mountPath,
+	}
 }

@@ -5,3 +5,5 @@ metadata:
 spec:
   # Add fields here
   deletePVC: true
+  #shard: 1
+  #replicas: 2
