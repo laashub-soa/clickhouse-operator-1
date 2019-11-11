@@ -98,11 +98,13 @@ func (g *Generator) generateRemoteServersXML() string {
 }
 
 func (g *Generator) generateZookeeperXML() string {
-	return ""
+	return `<yandex>
+</yandex>`
 }
 
 func (g *Generator) generateSettingsXML() string {
-	return ""
+	return `<yandex>
+</yandex>`
 }
 
 func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
@@ -239,9 +241,10 @@ func (g *Generator) GenerateStatefulSet() *appsv1.StatefulSet {
 	// StatefulSet has additional label - ZK config fingerprint
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      g.statefulsetName(),
-			Namespace: g.clickHouseCluster.Namespace,
-			Labels:    g.labels(),
+			Name:            g.statefulsetName(),
+			Namespace:       g.clickHouseCluster.Namespace,
+			Labels:          g.labels(),
+			OwnerReferences: g.ownerReference(),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:    &replicasNum,

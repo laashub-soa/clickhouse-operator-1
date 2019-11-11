@@ -2,6 +2,7 @@ apiVersion: clickhouse.sensetime.com/v1
 kind: ClickHouseCluster
 metadata:
   name: example-clickhousecluster
+  namespace: test
 spec:
   # Add fields here
   deletePVC: true

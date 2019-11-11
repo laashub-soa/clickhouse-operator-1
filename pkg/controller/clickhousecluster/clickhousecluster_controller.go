@@ -198,6 +198,9 @@ func (r *ReconcileClickHouseCluster) ReconcileService(service *corev1.Service) e
 	// Object with such name does not exist or error happened
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			logrus.WithFields(logrus.Fields{
+				"service":   service.Name,
+				"namespace": service.Namespace}).Info("Create Service")
 			// Object with such name not found - create it
 			return r.client.Create(context.TODO(), service)
 		}
