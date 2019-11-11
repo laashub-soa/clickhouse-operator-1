@@ -4,6 +4,7 @@ The ClickHouse Operator creates, configures and manages ClickHouse clusters runn
 
 [![build status](http://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse/badges/master/build.svg)](http://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse/commits/master)
 [![coverage report](http://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse/badges/master/coverage.svg)](http://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse/commits/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mackwong/clickhouse-operator)](https://goreportcard.com/report/github.com/mackwong/clickhouse-operator)
 
 **Warning!**
 **ClickHouse Operator is in beta. You can use it at your own risk. There may be backwards incompatible API changes up until the first major release.**
