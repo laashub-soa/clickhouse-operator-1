@@ -21,6 +21,7 @@ const (
 	chDefaultInterServerPortNumber = 9009
 
 	ClickHouseContainerName = "clickhouse"
+	InitContainerName       = "clickhouse-init"
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
@@ -71,6 +72,10 @@ func (g *Generator) ownerReference() []metav1.OwnerReference {
 		UID:        g.cc.UID,
 	}
 	return []metav1.OwnerReference{ref}
+}
+
+func (g *Generator) marosEmptyDirName() string {
+	return fmt.Sprintf("clickhouse-%s-maros", g.cc.Name)
 }
 
 func (g *Generator) commonConfigMapName() string {
@@ -214,6 +219,12 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			Volumes:    []corev1.Volume{},
 		},
 	}
+	statefulset.Spec.Template.Spec.InitContainers = []corev1.Container{
+		{
+			Name:  InitContainerName,
+			Image: g.cc.Spec.InitImage,
+		},
+	}
 	statefulset.Spec.Template.Spec.Containers = []corev1.Container{
 		{
 			Name:  ClickHouseContainerName,
@@ -249,6 +260,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 	statefulset.Spec.Template.Spec.Volumes = append(
 		statefulset.Spec.Template.Spec.Volumes,
 		newVolumeForConfigMap(g.commonConfigMapName()),
+		newVolumeForEmptyDir(g.marosEmptyDirName()),
 		//newVolumeForConfigMap(g.userConfigMapName()),
 		//newVolumeForConfigMap(g.macrosConfigMapName()),
 	)
@@ -262,6 +274,20 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 		container.VolumeMounts = append(
 			container.VolumeMounts,
 			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
+			newVolumeMount(g.marosEmptyDirName(), dirPathConfd),
+			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
+			//newVolumeMount(g.macrosConfigMapName(), dirPathConfd),
+		)
+	}
+
+	for i := range statefulset.Spec.Template.Spec.InitContainers {
+		// Convenience wrapper
+		container := &statefulset.Spec.Template.Spec.InitContainers[i]
+		// Append to each Container current VolumeMount's to VolumeMount's declared in template
+		container.VolumeMounts = append(
+			container.VolumeMounts,
+			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
+			newVolumeMount(g.commonConfigMapName(), dirPathConfd),
 			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
 			//newVolumeMount(g.macrosConfigMapName(), dirPathConfd),
 		)
@@ -326,6 +352,15 @@ func newVolumeForConfigMap(name string) corev1.Volume {
 					Name: name,
 				},
 			},
+		},
+	}
+}
+
+func newVolumeForEmptyDir(name string) corev1.Volume {
+	return corev1.Volume{
+		Name: name,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
 }

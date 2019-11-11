@@ -8,7 +8,8 @@ const (
 	AnnotationLastApplied string = "clickhouse.sensetime.com/last-applied-configuration"
 	ClusterPhaseInitial   string = "Initializing"
 
-	DefaultClickHouseImage string = "registry.sensetime.com/diamond/clickhouse-server:latest"
+	DefaultClickHouseImage     string = "registry.sensetime.com/diamond/clickhouse-server:latest"
+	DefaultClickHouseInitImage string = "registry.sensetime.com/diamond/clickhouse-init:latest"
 )
 
 // ClickHouseClusterSpec defines the desired state of ClickHouseCluster
@@ -16,6 +17,9 @@ const (
 type ClickHouseClusterSpec struct {
 	//ClickHouse Docker image
 	Image string `json:"image,omitempty"`
+
+	//ClickHouse init  image
+	InitImage string `json:"initImage,omitempty"`
 
 	//DeletePVC defines if the PVC must be deleted when the cluster is deleted
 	//it is false by default
@@ -65,6 +69,10 @@ func (c *ClickHouseCluster) SetDefaults() bool {
 	}
 	if c.Spec.Image == "" {
 		c.Spec.Image = DefaultClickHouseImage
+		changed = true
+	}
+	if c.Spec.InitImage == "" {
+		c.Spec.InitImage = DefaultClickHouseInitImage
 		changed = true
 	}
 	if c.Spec.ShardsCount == 0 {
