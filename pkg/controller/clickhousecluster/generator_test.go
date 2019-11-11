@@ -33,6 +33,13 @@ func (g *GeneratorTestSuite) TestGenerateRemoteServersXML() {
 	g.T().Log(out)
 }
 
+func (g *GeneratorTestSuite) TestGenerateAllMacrosJson() {
+	out := g.g.generateAllMacrosJson()
+	if out == "" {
+		g.T().Fatal("generate Macros error")
+	}
+}
+
 func TestRunSuite(t *testing.T) {
 	suite.Run(t, new(GeneratorTestSuite))
 }

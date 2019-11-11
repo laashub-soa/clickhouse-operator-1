@@ -150,10 +150,12 @@ func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouse
 	//	return err
 	//}
 
-	statefulSet := generator.GenerateStatefulSet()
-	if err := r.ReconcileStatefulSet(statefulSet); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("create statefulSet error")
-		return err
+	statefulSets := generator.GenerateStatefulSets()
+	for _, s := range statefulSets {
+		if err := r.ReconcileStatefulSet(s); err != nil {
+			logrus.WithFields(logrus.Fields{"namespace": s.Namespace, "name": s.Name, "error": err}).Error("create statefulSets error")
+			return err
+		}
 	}
 	return nil
 }

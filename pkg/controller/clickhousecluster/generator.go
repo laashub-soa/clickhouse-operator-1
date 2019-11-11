@@ -1,8 +1,10 @@
 package clickhousecluster
 
 import (
+	"encoding/json"
 	"fmt"
 	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +23,7 @@ const (
 	ClickHouseContainerName = "clickhouse"
 
 	filenameRemoteServersXML = "remote_servers.xml"
+	filenameAllMacrosJSON    = "all-macros.json"
 	filenameUsersXML         = "users.xml"
 	filenameZookeeperXML     = "zookeeper.xml"
 	filenameSettingsXML      = "settings.xml"
@@ -28,58 +31,74 @@ const (
 	dirPathConfigd = "/etc/clickhouse-server/config.d/"
 	dirPathUsersd  = "/etc/clickhouse-server/users.d/"
 	dirPathConfd   = "/etc/clickhouse-server/conf.d/"
+
+	macrosTemplate = `
+<yandex>
+        <macros>
+            <cluster>%s</cluster>
+            <shard>%d</shard>
+            <replica>%s</replica>
+        </macros>
+</yandex>`
 )
 
 type Generator struct {
-	clickHouseCluster *v1.ClickHouseCluster
+	cc *v1.ClickHouseCluster
 }
 
 func NewGenerator(chc *v1.ClickHouseCluster) *Generator {
-	return &Generator{clickHouseCluster: chc}
+	return &Generator{cc: chc}
 }
 
-func (g *Generator) labels() map[string]string {
+func (g *Generator) labelsForStatefulSet(shardID int) map[string]string {
 	return map[string]string{
-		"clickhousecluster": g.clickHouseCluster.Name,
+		"clickhouse-cluster": g.cc.Name,
+		"shard-id":           fmt.Sprintf("%d", shardID),
+	}
+}
+
+func (g *Generator) labelsForCluster() map[string]string {
+	return map[string]string{
+		"clickhouse-cluster": g.cc.Name,
 	}
 }
 
 func (g *Generator) ownerReference() []metav1.OwnerReference {
 	ref := metav1.OwnerReference{
-		APIVersion: g.clickHouseCluster.APIVersion,
-		Kind:       g.clickHouseCluster.Kind,
-		Name:       g.clickHouseCluster.Name,
-		UID:        g.clickHouseCluster.UID,
+		APIVersion: g.cc.APIVersion,
+		Kind:       g.cc.Kind,
+		Name:       g.cc.Name,
+		UID:        g.cc.UID,
 	}
 	return []metav1.OwnerReference{ref}
 }
 
 func (g *Generator) commonConfigMapName() string {
-	return fmt.Sprintf("clickhouse-%s-common-config", g.clickHouseCluster.Name)
+	return fmt.Sprintf("clickhouse-%s-common-config", g.cc.Name)
 }
 
 func (g *Generator) userConfigMapName() string {
-	return fmt.Sprintf("clickhouse-%s-user-config", g.clickHouseCluster.Name)
+	return fmt.Sprintf("clickhouse-%s-user-config", g.cc.Name)
 }
 
 func (g *Generator) macrosConfigMapName() string {
-	return fmt.Sprintf("clickhouse-%s-macros-config", g.clickHouseCluster.Name)
+	return fmt.Sprintf("clickhouse-%s-macros-config", g.cc.Name)
 }
 
-func (g *Generator) statefulsetName() string {
-	return fmt.Sprintf("clickhouse-%s", g.clickHouseCluster.Name)
+func (g *Generator) statefulSetName(shardID int) string {
+	return fmt.Sprintf("clickhouse-%s-%d", g.cc.Name, shardID)
 }
 
-func (g *Generator) serviceName() string {
-	return g.statefulsetName()
+func (g *Generator) serviceName(shardID int) string {
+	return g.statefulSetName(shardID)
 }
 
 func (g *Generator) generateRemoteServersXML() string {
-	shards := make([]Shard, g.clickHouseCluster.Spec.ShardsCount)
-	statefulset := g.statefulsetName()
+	shards := make([]Shard, g.cc.Spec.ShardsCount)
 	index := 0
 	for i := range shards {
-		replicas := make([]Replica, g.clickHouseCluster.Spec.ReplicasCount)
+		statefulset := g.statefulSetName(i)
+		replicas := make([]Replica, g.cc.Spec.ReplicasCount)
 		for j := range replicas {
 			replicas[j].Host = fmt.Sprintf("%s-%d", statefulset, index)
 			replicas[j].Port = chDefaultClientPortNumber
@@ -91,7 +110,7 @@ func (g *Generator) generateRemoteServersXML() string {
 
 	servers := YandexRemoteServers{
 		Yandex: RemoteServers{RemoteServer: map[string]Cluster{
-			g.clickHouseCluster.Name: {shards},
+			g.cc.Name: {shards},
 		}},
 	}
 	return ParseXML(servers)
@@ -107,18 +126,37 @@ func (g *Generator) generateSettingsXML() string {
 </yandex>`
 }
 
+func (g *Generator) generateAllMacrosJson() string {
+	macros := make(map[string]string)
+	var shardsCount = int(g.cc.Spec.ShardsCount)
+	var replicasCount = int(g.cc.Spec.ReplicasCount)
+	for i := 0; i < shardsCount; i++ {
+		for j := 0; j < replicasCount; j++ {
+			replica := fmt.Sprintf("%s-%d", g.statefulSetName(i), j)
+			macros[replica] = fmt.Sprintf(macrosTemplate, g.cc.Name, i, replica)
+		}
+	}
+	out, err := json.MarshalIndent(macros, " ", "")
+	if err != nil {
+		logrus.WithFields(logrus.Fields{"err": err}).Error("Marshal error")
+		return ""
+	}
+	return string(out)
+}
+
 func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 
 	data := map[string]string{
 		filenameRemoteServersXML: g.generateRemoteServersXML(),
+		filenameAllMacrosJSON:    g.generateAllMacrosJson(),
 		filenameSettingsXML:      g.generateSettingsXML(),
 		filenameZookeeperXML:     g.generateZookeeperXML(),
 	}
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.commonConfigMapName(),
-			Namespace:       g.clickHouseCluster.Namespace,
-			Labels:          g.labels(),
+			Namespace:       g.cc.Namespace,
+			Labels:          g.labelsForCluster(),
 			OwnerReferences: g.ownerReference(),
 		},
 		// Data contains several sections which are to be several xml chopConfig files
@@ -130,8 +168,8 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.userConfigMapName(),
-			Namespace:       g.clickHouseCluster.Namespace,
-			Labels:          g.labels(),
+			Namespace:       g.cc.Namespace,
+			Labels:          g.labelsForCluster(),
 			OwnerReferences: g.ownerReference(),
 		},
 		// Data contains several sections which are to be several xml chopConfig files
@@ -142,9 +180,9 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 func (g *Generator) GenerateService() *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            g.clickHouseCluster.Name,
-			Namespace:       g.clickHouseCluster.Namespace,
-			Labels:          g.labels(),
+			Name:            g.cc.Name,
+			Namespace:       g.cc.Namespace,
+			Labels:          g.labelsForCluster(),
 			OwnerReferences: g.ownerReference(),
 		},
 		Spec: corev1.ServiceSpec{
@@ -159,17 +197,17 @@ func (g *Generator) GenerateService() *corev1.Service {
 					Port: chDefaultClientPortNumber,
 				},
 			},
-			Selector: g.labels(),
+			Selector: g.labelsForCluster(),
 			Type:     "ClusterIP",
 		},
 	}
 }
 
-func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet) {
+func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet, shardID int) {
 	statefulset.Spec.Template = corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   statefulset.Name,
-			Labels: g.labels(),
+			Labels: g.labelsForStatefulSet(shardID),
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{},
@@ -179,7 +217,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet)
 	statefulset.Spec.Template.Spec.Containers = []corev1.Container{
 		{
 			Name:  ClickHouseContainerName,
-			Image: g.clickHouseCluster.Spec.Image,
+			Image: g.cc.Spec.Image,
 			Ports: []corev1.ContainerPort{
 				{
 					Name:          chDefaultHTTPPortName,
@@ -235,22 +273,32 @@ func (g *Generator) setupStatefulSetVolumeClaimTemplates(statefulset *appsv1.Sta
 
 }
 
-func (g *Generator) GenerateStatefulSet() *appsv1.StatefulSet {
+func (g *Generator) GenerateStatefulSets() []*appsv1.StatefulSet {
+	var statefulSets = make([]*appsv1.StatefulSet, 0)
+	var count = int(g.cc.Spec.ShardsCount)
+	for i := 0; i < count; i++ {
+		s := g.generateStatefulSet(i)
+		statefulSets = append(statefulSets, s)
+	}
+	return statefulSets
+}
+
+func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 	// Create apps.StatefulSet object
-	replicasNum := g.clickHouseCluster.Spec.ShardsCount * g.clickHouseCluster.Spec.ReplicasCount
+	replicasNum := g.cc.Spec.ReplicasCount
 	// StatefulSet has additional label - ZK config fingerprint
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            g.statefulsetName(),
-			Namespace:       g.clickHouseCluster.Namespace,
-			Labels:          g.labels(),
+			Name:            g.statefulSetName(shardID),
+			Namespace:       g.cc.Namespace,
+			Labels:          g.labelsForStatefulSet(shardID),
 			OwnerReferences: g.ownerReference(),
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Replicas:    &replicasNum,
-			ServiceName: g.serviceName(),
+			Replicas: &replicasNum,
+			//ServiceName: g.serviceName(shardID),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: g.labels(),
+				MatchLabels: g.labelsForStatefulSet(shardID),
 			},
 			// IMPORTANT
 			// VolumeClaimTemplates are to be setup later
@@ -262,7 +310,7 @@ func (g *Generator) GenerateStatefulSet() *appsv1.StatefulSet {
 		},
 	}
 
-	g.setupStatefulSetPodTemplate(statefulSet)
+	g.setupStatefulSetPodTemplate(statefulSet, shardID)
 	g.setupStatefulSetVolumeClaimTemplates(statefulSet)
 
 	return statefulSet
