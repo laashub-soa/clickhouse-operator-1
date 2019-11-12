@@ -3,7 +3,11 @@ package clickhousecluster
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -37,7 +41,21 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileClickHouseCluster{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	commonConfigs := make(map[string]string)
+	if err := filepath.Walk("./config", func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, ".xml") || strings.HasSuffix(path, ".json") {
+			content, err := ioutil.ReadFile(path)
+			if err != nil {
+				logrus.Error(err)
+				return err
+			}
+			commonConfigs[info.Name()] = string(content)
+		}
+		return nil
+	}); err != nil {
+		logrus.Fatal(err)
+	}
+	return &ReconcileClickHouseCluster{client: mgr.GetClient(), scheme: mgr.GetScheme(), commonConfigs: commonConfigs}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -76,6 +94,8 @@ type ReconcileClickHouseCluster struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+
+	commonConfigs map[string]string
 }
 
 func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -129,7 +149,7 @@ func (r *ReconcileClickHouseCluster) updateClickHouseStatus(
 }
 
 func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouseCluster) error {
-	var generator = NewGenerator(instance)
+	var generator = NewGenerator(r, instance)
 
 	//Service for Clickhouse
 	service := generator.GenerateService()

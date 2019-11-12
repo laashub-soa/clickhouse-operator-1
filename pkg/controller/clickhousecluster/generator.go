@@ -44,11 +44,12 @@ const (
 )
 
 type Generator struct {
-	cc *v1.ClickHouseCluster
+	rcc *ReconcileClickHouseCluster
+	cc  *v1.ClickHouseCluster
 }
 
-func NewGenerator(chc *v1.ClickHouseCluster) *Generator {
-	return &Generator{cc: chc}
+func NewGenerator(rcc *ReconcileClickHouseCluster, cc *v1.ClickHouseCluster) *Generator {
+	return &Generator{rcc: rcc, cc: cc}
 }
 
 func (g *Generator) labelsForStatefulSet(shardID int) map[string]string {
@@ -157,6 +158,10 @@ func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 		filenameSettingsXML:      g.generateSettingsXML(),
 		filenameZookeeperXML:     g.generateZookeeperXML(),
 	}
+	for filename, content := range g.rcc.commonConfigs {
+		data[filename] = content
+	}
+
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.commonConfigMapName(),
@@ -223,12 +228,32 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 		{
 			Name:  InitContainerName,
 			Image: g.cc.Spec.InitImage,
+			Env: []corev1.EnvVar{
+				{
+					Name: "POD_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "metadata.name",
+						},
+					},
+				},
+			},
 		},
 	}
 	statefulset.Spec.Template.Spec.Containers = []corev1.Container{
 		{
 			Name:  ClickHouseContainerName,
 			Image: g.cc.Spec.Image,
+			Env: []corev1.EnvVar{
+				{
+					Name: "POD_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "metadata.name",
+						},
+					},
+				},
+			},
 			Ports: []corev1.ContainerPort{
 				{
 					Name:          chDefaultHTTPPortName,
@@ -287,7 +312,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 		container.VolumeMounts = append(
 			container.VolumeMounts,
 			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
-			newVolumeMount(g.commonConfigMapName(), dirPathConfd),
+			newVolumeMount(g.marosEmptyDirName(), dirPathConfd),
 			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
 			//newVolumeMount(g.macrosConfigMapName(), dirPathConfd),
 		)

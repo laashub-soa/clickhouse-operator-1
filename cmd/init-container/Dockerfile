@@ -1,9 +1,9 @@
 FROM registry.sensetime.com/docker.io/golang:1.12.7-stretch
-ARG BUILD_DIR=/go/src/gitlab.bj.sensetime.com/diamond/service-providers/cassandra
-COPY . ${BUILD_DIR}
+ARG BUILD_DIR=/go/src/github.com/mackwong/clickhouse-opertator/cmd/init-container/
+COPY main.go ${BUILD_DIR}
 WORKDIR ${BUILD_DIR}
-RUN make build
+RUN go build -o /usr/local/bin/maros
 
 FROM  registry.sensetime.com/docker.io/ubuntu:16.04
-ARG BUILD_DIR=/go/src/gitlab.bj.sensetime.com/diamond/service-providers/cassandra
-COPY --from=0 ${BUILD_DIR}/bin/* /usr/local/bin/
+COPY --from=0 /usr/local/bin/maros /usr/local/bin/maros
+ENTRYPOINT ["maros"]
