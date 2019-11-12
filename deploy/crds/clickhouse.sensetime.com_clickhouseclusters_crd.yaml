@@ -8,6 +8,8 @@ spec:
     kind: ClickHouseCluster
     listKind: ClickHouseClusterList
     plural: clickhouseclusters
+    shortNames:
+    - chc
     singular: clickhousecluster
   scope: Namespaced
   validation:
@@ -43,6 +45,9 @@ spec:
             image:
               description: ClickHouse Docker image
               type: string
+            initImage:
+              description: ClickHouse init  image
+              type: string
             replicasCount:
               description: Replicas count
               format: int32
@@ -53,7 +58,8 @@ spec:
               type: integer
           type: object
         status:
-          description: ClickHouseClusterStatus defines the observed state of ClickHouseCluster
+          description: Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564
+            ClickHouseClusterStatus defines the observed state of ClickHouseCluster
           properties:
             status:
               type: string

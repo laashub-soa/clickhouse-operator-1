@@ -37,6 +37,10 @@ push: image ## Pushes the image to docker registry
 deploy-operator: ## Deploys operator with helm
 	helm upgrade --install clickhouse-operator helm/clickhouse-operator --namespace clickhouse-system
 
+generate: ## Deploys operator with helm
+	 operator-sdk generate k8s
+	 operator-sdk generate openapi
+
 deploy-broker: ## Deploys broker with helm
 	helm upgrade --install clickhouse-service-broker \
 	helm/clickhouse-service-broker --namespace clickhouse-system \

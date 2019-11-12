@@ -75,6 +75,13 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 							Format:      "",
 						},
 					},
+					"initImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClickHouse init  image",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"deletePVC": {
 						SchemaProps: spec.SchemaProps{
 							Description: "DeletePVC defines if the PVC must be deleted when the cluster is deleted it is false by default",
@@ -120,7 +127,7 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterStatus(ref common.ReferenceC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClickHouseClusterStatus defines the observed state of ClickHouseCluster",
+				Description: "Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564 ClickHouseClusterStatus defines the observed state of ClickHouseCluster",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"status": {

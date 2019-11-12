@@ -48,6 +48,23 @@ type ClickHouseClusterStatus struct {
 	Status string `json:"status,omitempty"`
 }
 
+// ZookeeperConfig defines zookeeper
+// Refers to
+// https://clickhouse.yandex/docs/en/single/index.html?#server-settings_zookeeper
+type ZookeeperConfig struct {
+	Nodes              []ZookeeperNode `json:"nodes,omitempty"                yaml:"nodes"`
+	SessionTimeoutMs   int             `json:"session_timeout_ms,omitempty"   yaml:"session_timeout_ms"`
+	OperationTimeoutMs int             `json:"operation_timeout_ms,omitempty" yaml:"operation_timeout_ms"`
+	Root               string          `json:"root,omitempty"                 yaml:"root"`
+	Identity           string          `json:"identity,omitempty"             yaml:"identity"`
+}
+
+// ZookeeperNode defines item of nodes section
+type ZookeeperNode struct {
+	Host string `json:"host" yaml:"host"`
+	Port int32  `json:"port" yaml:"port"`
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClickHouseCluster is the Schema for the clickhouseclusters API

@@ -25,7 +25,7 @@ func (g *GeneratorTestSuite) SetupTest() {
 		},
 		Status: v1.ClickHouseClusterStatus{},
 	}
-	g.g = NewGenerator(chc)
+	g.g = NewGenerator(nil, chc)
 }
 
 func (g *GeneratorTestSuite) TestGenerateRemoteServersXML() {
