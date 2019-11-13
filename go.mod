@@ -7,8 +7,8 @@ require (
 	github.com/go-openapi/spec v0.19.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/operator-framework/operator-sdk v0.12.0
+	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/pflag v1.0.3
 	github.com/stretchr/testify v1.3.0
 	google.golang.org/genproto v0.0.0-20181016170114-94acd270e44e // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect

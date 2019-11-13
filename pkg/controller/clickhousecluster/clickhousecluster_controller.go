@@ -299,6 +299,10 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		config.DefaultZookeeper.Root = fmt.Sprintf("%s/%s/%s", config.DefaultZookeeper.Root, c.Namespace, c.Name)
 		c.Spec.Zookeeper = config.DefaultZookeeper
 	}
+	if c.Spec.CustomSettings == "" {
+		c.Spec.CustomSettings = "<yandex></yandex>"
+	}
+
 	return changed
 }
 

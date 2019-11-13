@@ -30,7 +30,7 @@ type ClickHouseClusterSpec struct {
 	//Zookeeper config
 	Zookeeper *ZookeeperConfig `json:"zookeeper,omitempty"`
 
-	//Custom defined XML settings
+	//Custom defined XML settings, like <yandex>somethine</yandex>
 	CustomSettings string
 
 	//The storage capacity

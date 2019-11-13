@@ -6,5 +6,5 @@ metadata:
 spec:
   # Add fields here
   deletePVC: true
-  shardsCount: 2
+  shardsCount: 1
   replicasCount: 2
