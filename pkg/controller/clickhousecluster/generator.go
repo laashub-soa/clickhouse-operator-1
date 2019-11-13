@@ -25,13 +25,15 @@ const (
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
-	filenameUsersXML         = "users.xml"
-	filenameZookeeperXML     = "zookeeper.xml"
-	filenameSettingsXML      = "settings.xml"
+	//filenameUsersXML         = "users.xml"
+	filenameZookeeperXML = "zookeeper.xml"
+	filenameSettingsXML  = "settings.xml"
+
+	ClusterPhaseInitial = "Initializing"
 
 	dirPathConfigd = "/etc/clickhouse-server/config.d/"
-	dirPathUsersd  = "/etc/clickhouse-server/users.d/"
-	dirPathConfd   = "/etc/clickhouse-server/conf.d/"
+	//dirPathUsersd  = "/etc/clickhouse-server/users.d/"
+	dirPathConfd = "/etc/clickhouse-server/conf.d/"
 
 	macrosTemplate = `
 <yandex>
@@ -114,22 +116,19 @@ func (g *Generator) generateRemoteServersXML() string {
 		shards[i].Replica = replicas
 	}
 
-	servers := YandexRemoteServers{
-		Yandex: RemoteServers{RemoteServer: map[string]Cluster{
-			g.cc.Name: {shards},
-		}},
-	}
+	servers := RemoteServers{RemoteServer: map[string]Cluster{
+		g.cc.Name: {shards},
+	}}
 	return ParseXML(servers)
 }
 
 func (g *Generator) generateZookeeperXML() string {
-	return `<yandex>
-</yandex>`
+	zk := Zookeeper{Zookeeper: g.cc.Spec.Zookeeper}
+	return ParseXML(zk)
 }
 
 func (g *Generator) generateSettingsXML() string {
-	return `<yandex>
-</yandex>`
+	return g.cc.Spec.CustomSettings
 }
 
 func (g *Generator) generateAllMacrosJson() string {

@@ -30,6 +30,9 @@ type ClickHouseClusterSpec struct {
 	//Zookeeper config
 	Zookeeper *ZookeeperConfig `json:"zookeeper,omitempty"`
 
+	//Custom defined XML settings
+	CustomSettings string
+
 	//The storage capacity
 	DataCapacity string `json:"dataCapacity,omitempty"`
 
@@ -51,17 +54,17 @@ type ClickHouseClusterStatus struct {
 // Refers to
 // https://clickhouse.yandex/docs/en/single/index.html?#server-settings_zookeeper
 type ZookeeperConfig struct {
-	Nodes              []ZookeeperNode `json:"nodes,omitempty"                yaml:"nodes"`
-	SessionTimeoutMs   int             `json:"session_timeout_ms,omitempty"   yaml:"session_timeout_ms"`
-	OperationTimeoutMs int             `json:"operation_timeout_ms,omitempty" yaml:"operation_timeout_ms"`
-	Root               string          `json:"root,omitempty"                 yaml:"root"`
-	Identity           string          `json:"identity,omitempty"             yaml:"identity"`
+	Nodes              []ZookeeperNode `json:"nodes,omitempty"                yaml:"nodes"  xml:"nodes"`
+	SessionTimeoutMs   int             `json:"session_timeout_ms,omitempty"   yaml:"session_timeout_ms" xml:"session_timeout_ms"`
+	OperationTimeoutMs int             `json:"operation_timeout_ms,omitempty" yaml:"operation_timeout_ms" xml:"operation_timeout_ms"`
+	Root               string          `json:"root,omitempty"                 yaml:"root" xml:"root"`
+	Identity           string          `json:"identity,omitempty"             yaml:"identity" xml:"identity"`
 }
 
 // ZookeeperNode defines item of nodes section
 type ZookeeperNode struct {
-	Host string `json:"host" yaml:"host"`
-	Port int32  `json:"port" yaml:"port"`
+	Host string `json:"host" yaml:"host" xml:"host"`
+	Port int32  `json:"port" yaml:"port" xml:"port"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

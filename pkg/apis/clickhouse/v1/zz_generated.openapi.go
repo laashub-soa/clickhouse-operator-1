@@ -109,6 +109,13 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 							Ref:         ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ZookeeperConfig"),
 						},
 					},
+					"CustomSettings": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Custom defined XML settings",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"dataCapacity": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The storage capacity",
@@ -124,6 +131,7 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 						},
 					},
 				},
+				Required: []string{"CustomSettings"},
 			},
 		},
 		Dependencies: []string{

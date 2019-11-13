@@ -1,6 +1,8 @@
 package clickhousecluster
 
-const ClusterPhaseInitial string = "Initializing"
+import (
+	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+)
 
 type Replica struct {
 	Host string `xml:"host"`
@@ -20,6 +22,6 @@ type RemoteServers struct {
 	RemoteServer map[string]Cluster `xml:"remote_servers"`
 }
 
-type YandexRemoteServers struct {
-	Yandex RemoteServers `xml:"yandex"`
+type Zookeeper struct {
+	Zookeeper *v1.ZookeeperConfig `xml:"zookeeper"`
 }
