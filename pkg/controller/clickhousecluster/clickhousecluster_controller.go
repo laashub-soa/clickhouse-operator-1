@@ -3,11 +3,8 @@ package clickhousecluster
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"github.com/mackwong/clickhouse-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -20,13 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-var log = logf.Log.WithName("controller_clickhousecluster")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -41,21 +35,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	commonConfigs := make(map[string]string)
-	if err := filepath.Walk("./config", func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".xml") || strings.HasSuffix(path, ".json") {
-			content, err := ioutil.ReadFile(path)
-			if err != nil {
-				logrus.Error(err)
-				return err
-			}
-			commonConfigs[info.Name()] = string(content)
-		}
-		return nil
-	}); err != nil {
-		logrus.Fatal(err)
+	defaultConfig, err := config.LoadDefaultConfig()
+	if err != nil {
+		logrus.WithFields(logrus.Fields{"error": err}).Fatal("Load default config error")
 	}
-	return &ReconcileClickHouseCluster{client: mgr.GetClient(), scheme: mgr.GetScheme(), commonConfigs: commonConfigs}
+	return &ReconcileClickHouseCluster{client: mgr.GetClient(), scheme: mgr.GetScheme(), defaultConfig: defaultConfig}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -95,12 +79,11 @@ type ReconcileClickHouseCluster struct {
 	client client.Client
 	scheme *runtime.Scheme
 
-	commonConfigs map[string]string
+	defaultConfig *config.DefaultConfig
 }
 
 func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling ClickHouseCluster")
+	log := logrus.WithFields(logrus.Fields{"namespace": request.Namespace, "name": request.Name})
 
 	requeue5 := reconcile.Result{RequeueAfter: 5 * time.Second}
 	//requeue := reconcile.Result{Requeue: true}
@@ -111,18 +94,17 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			logrus.Info("Delete ClickHouseCluster")
+			log.Info("Delete ClickHouseCluster")
 			return forget, nil
 		}
+		log.WithField("error", err).Error("get clickhouse instance error")
 		return forget, err
 	}
 
 	if instance.Status.Status == "" {
-		changed := instance.SetDefaults()
+		changed := r.setDefaults(instance, r.defaultConfig)
 		if changed {
-			logrus.WithFields(logrus.Fields{
-				"cluster":   instance.Name,
-				"namespace": instance.Namespace}).Info("Update ClickHouseCluster")
+			log.Info("Update ClickHouseCluster")
 			err = r.client.Update(context.TODO(), instance)
 			return forget, err
 		}
@@ -136,6 +118,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	}
 
 	if err = r.reconcile(instance); err != nil {
+		log.WithField("error", err).Error("reconcile error")
 		return requeue5, err
 	}
 
@@ -286,6 +269,35 @@ func (r *ReconcileClickHouseCluster) ReconcileStatefulSet(statefulSet *appsv1.St
 		"statefulSet": statefulSet.Name,
 		"namespace":   statefulSet.Namespace}).Info("Update StatefulSet")
 	return r.client.Update(context.TODO(), statefulSet)
+}
+
+func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseCluster, config *config.DefaultConfig) bool {
+	var changed = false
+	if c.Status.Status == "" {
+		c.Status.Status = ClusterPhaseInitial
+		changed = true
+	}
+	if c.Spec.Image == "" {
+		c.Spec.Image = config.DefaultClickhouseImage
+		changed = true
+	}
+	if c.Spec.InitImage == "" {
+		c.Spec.InitImage = config.DefaultClickhouseInitImage
+		changed = true
+	}
+
+	if c.Spec.ShardsCount == 0 {
+		c.Spec.ShardsCount = config.DefaultShardCount
+		changed = true
+	}
+	if c.Spec.ReplicasCount == 0 {
+		c.Spec.ReplicasCount = config.DefaultReplicasCount
+		changed = true
+	}
+	if c.Spec.Zookeeper == nil {
+		c.Spec.Zookeeper = config.DefaultZookeeper
+	}
+	return changed
 }
 
 ////Todo: use object replace statefulset/service/configmap

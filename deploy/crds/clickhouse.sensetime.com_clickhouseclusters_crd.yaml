@@ -56,6 +56,32 @@ spec:
               description: Shards count
               format: int32
               type: integer
+            zookeeper:
+              description: Zookeeper config
+              properties:
+                identity:
+                  type: string
+                nodes:
+                  items:
+                    description: ZookeeperNode defines item of nodes section
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        format: int32
+                        type: integer
+                    required:
+                    - host
+                    - port
+                    type: object
+                  type: array
+                operation_timeout_ms:
+                  type: integer
+                root:
+                  type: string
+                session_timeout_ms:
+                  type: integer
+              type: object
           type: object
         status:
           description: Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564

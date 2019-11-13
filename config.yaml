@@ -1,0 +1,13 @@
+default-clickhouse-image: "registry.sensetime.com/diamond/clickhouse-server:latest"
+default-clickhouse-init-image: "registry.sensetime.com/diamond/clickhouse-init:latest"
+default-config:
+  - ./config/01-clickhouse-listen.xml
+  - ./config/02-clickhouse-logger.xml
+default-zookeeper:
+  nodes:
+    - host: zookeeper.clickhouse-system
+      port: 2181
+  session_timeout_ms: 30000
+  operation_timeout_ms: 10000
+  root: /clickhouse/tables/{namespace}/{shard}
+  identity: user:password

@@ -12,6 +12,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 	google.golang.org/genproto v0.0.0-20181016170114-94acd270e44e // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
+	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.0+incompatible

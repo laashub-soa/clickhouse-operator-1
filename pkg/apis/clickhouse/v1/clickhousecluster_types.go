@@ -6,10 +6,6 @@ import (
 
 const (
 	AnnotationLastApplied string = "clickhouse.sensetime.com/last-applied-configuration"
-	ClusterPhaseInitial   string = "Initializing"
-
-	DefaultClickHouseImage     string = "registry.sensetime.com/diamond/clickhouse-server:latest"
-	DefaultClickHouseInitImage string = "registry.sensetime.com/diamond/clickhouse-init:latest"
 )
 
 // ClickHouseClusterSpec defines the desired state of ClickHouseCluster
@@ -30,6 +26,9 @@ type ClickHouseClusterSpec struct {
 
 	//Replicas count
 	ReplicasCount int32 `json:"replicasCount,omitempty"`
+
+	//Zookeeper config
+	Zookeeper *ZookeeperConfig `json:"zookeeper,omitempty"`
 
 	//The storage capacity
 	DataCapacity string `json:"dataCapacity,omitempty"`
@@ -76,31 +75,6 @@ type ClickHouseCluster struct {
 
 	Spec   ClickHouseClusterSpec   `json:"spec,omitempty"`
 	Status ClickHouseClusterStatus `json:"status,omitempty"`
-}
-
-func (c *ClickHouseCluster) SetDefaults() bool {
-	var changed = false
-	if c.Status.Status == "" {
-		c.Status.Status = ClusterPhaseInitial
-		changed = true
-	}
-	if c.Spec.Image == "" {
-		c.Spec.Image = DefaultClickHouseImage
-		changed = true
-	}
-	if c.Spec.InitImage == "" {
-		c.Spec.InitImage = DefaultClickHouseInitImage
-		changed = true
-	}
-	if c.Spec.ShardsCount == 0 {
-		c.Spec.ShardsCount = 1
-		changed = true
-	}
-	if c.Spec.ReplicasCount == 0 {
-		c.Spec.ReplicasCount = 1
-		changed = true
-	}
-	return changed
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

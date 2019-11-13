@@ -158,7 +158,7 @@ func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 		filenameSettingsXML:      g.generateSettingsXML(),
 		filenameZookeeperXML:     g.generateZookeeperXML(),
 	}
-	for filename, content := range g.rcc.commonConfigs {
+	for filename, content := range g.rcc.defaultConfig.GetDefaultXMLConfig() {
 		data[filename] = content
 	}
 

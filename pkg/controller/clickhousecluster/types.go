@@ -1,5 +1,7 @@
 package clickhousecluster
 
+const ClusterPhaseInitial string = "Initializing"
+
 type Replica struct {
 	Host string `xml:"host"`
 	Port int    `xml:"port"`
