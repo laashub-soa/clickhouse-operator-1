@@ -101,16 +101,19 @@ func (g *Generator) serviceName(shardID int) string {
 	return g.statefulSetName(shardID)
 }
 
+func (g *Generator) FQDN(shardID, replicasID int, namespace string) string {
+	statefulset := g.statefulSetName(shardID)
+	serviceName := g.serviceName(shardID)
+	return fmt.Sprintf("%s-%d.%s.%s.svc.cluster.local", statefulset, replicasID, serviceName, namespace)
+}
+
 func (g *Generator) generateRemoteServersXML() string {
 	shards := make([]Shard, g.cc.Spec.ShardsCount)
-	index := 0
 	for i := range shards {
-		statefulset := g.statefulSetName(i)
 		replicas := make([]Replica, g.cc.Spec.ReplicasCount)
 		for j := range replicas {
-			replicas[j].Host = fmt.Sprintf("%s-%d.%s", statefulset, index, g.serviceName(i))
+			replicas[j].Host = g.FQDN(i, j, g.cc.Namespace)
 			replicas[j].Port = chDefaultClientPortNumber
-			index++
 		}
 		shards[i].InternalReplication = true
 		shards[i].Replica = replicas
