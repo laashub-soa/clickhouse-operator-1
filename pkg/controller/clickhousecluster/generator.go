@@ -108,7 +108,7 @@ func (g *Generator) generateRemoteServersXML() string {
 		statefulset := g.statefulSetName(i)
 		replicas := make([]Replica, g.cc.Spec.ReplicasCount)
 		for j := range replicas {
-			replicas[j].Host = fmt.Sprintf("%s-%d", statefulset, index)
+			replicas[j].Host = fmt.Sprintf("%s-%d.%s", statefulset, index, g.serviceName(i))
 			replicas[j].Port = chDefaultClientPortNumber
 			index++
 		}
@@ -186,12 +186,22 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 	}
 }
 
-func (g *Generator) GenerateService() *corev1.Service {
+func (g *Generator) GerateServices() []*corev1.Service {
+	var services = make([]*corev1.Service, 0)
+	var count = int(g.cc.Spec.ShardsCount)
+	for i := 0; i < count; i++ {
+		s := g.generateService(i)
+		services = append(services, s)
+	}
+	return services
+}
+
+func (g *Generator) generateService(shardID int) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            g.cc.Name,
+			Name:            g.serviceName(shardID),
 			Namespace:       g.cc.Namespace,
-			Labels:          g.labelsForCluster(),
+			Labels:          g.labelsForStatefulSet(shardID),
 			OwnerReferences: g.ownerReference(),
 		},
 		Spec: corev1.ServiceSpec{
@@ -206,8 +216,9 @@ func (g *Generator) GenerateService() *corev1.Service {
 					Port: chDefaultClientPortNumber,
 				},
 			},
-			Selector: g.labelsForCluster(),
-			Type:     "ClusterIP",
+			Selector:  g.labelsForStatefulSet(shardID),
+			ClusterIP: "None",
+			Type:      "ClusterIP",
 		},
 	}
 }
@@ -276,6 +287,14 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 				},
 				InitialDelaySeconds: 10,
 				PeriodSeconds:       10,
+			},
+			SecurityContext: &corev1.SecurityContext{
+				Capabilities: &corev1.Capabilities{
+					Add: []corev1.Capability{
+						"NET_ADMIN",
+						"SYS_NICE",
+					},
+				},
 			},
 		},
 	}
@@ -350,6 +369,7 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: g.labelsForStatefulSet(shardID),
 			},
+			ServiceName: g.serviceName(shardID),
 			// IMPORTANT
 			// VolumeClaimTemplates are to be setup later
 			VolumeClaimTemplates: nil,

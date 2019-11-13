@@ -136,10 +136,12 @@ func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouse
 	var generator = NewGenerator(r, instance)
 
 	//Service for Clickhouse
-	service := generator.GenerateService()
-	if err := r.ReconcileService(service); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
-		return err
+	services := generator.GerateServices()
+	for _, s := range services {
+		if err := r.ReconcileService(s); err != nil {
+			logrus.WithFields(logrus.Fields{"namespace": s.Namespace, "name": s.Name, "error": err}).Error("create service error")
+			return err
+		}
 	}
 
 	commonConfigMap := generator.GenerateCommonConfigMap()
