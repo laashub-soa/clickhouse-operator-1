@@ -3,6 +3,7 @@ package clickhousecluster
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/mackwong/clickhouse-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/types"
 	"time"
@@ -295,6 +296,7 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		changed = true
 	}
 	if c.Spec.Zookeeper == nil {
+		config.DefaultZookeeper.Root = fmt.Sprintf("%s/%s/%s", config.DefaultZookeeper.Root, c.Namespace, c.Name)
 		c.Spec.Zookeeper = config.DefaultZookeeper
 	}
 	return changed
