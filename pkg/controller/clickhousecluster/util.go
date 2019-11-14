@@ -63,9 +63,14 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 
 	sts1.Spec.Template.Spec.SchedulerName = sts2.Spec.Template.Spec.SchedulerName
 	sts1.Spec.Template.Spec.DNSPolicy = sts2.Spec.Template.Spec.DNSPolicy // ClusterFirst
+	sts1.Spec.Template.Spec.TerminationGracePeriodSeconds = sts2.Spec.Template.Spec.TerminationGracePeriodSeconds
+	sts1.Spec.Template.Spec.RestartPolicy = sts2.Spec.Template.Spec.RestartPolicy
+	sts1.Spec.Template.Spec.SecurityContext = sts2.Spec.Template.Spec.SecurityContext
+
 	for i := 0; i < len(sts1.Spec.Template.Spec.Containers); i++ {
 		sts1.Spec.Template.Spec.Containers[i].LivenessProbe = sts2.Spec.Template.Spec.Containers[i].LivenessProbe
 		sts1.Spec.Template.Spec.Containers[i].ReadinessProbe = sts2.Spec.Template.Spec.Containers[i].ReadinessProbe
+		sts1.Spec.Template.Spec.Containers[i].ImagePullPolicy = sts2.Spec.Template.Spec.Containers[i].ImagePullPolicy
 
 		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePath = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePath
 		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePolicy = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePolicy
@@ -74,6 +79,7 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 	for i := 0; i < len(sts1.Spec.Template.Spec.InitContainers); i++ {
 		sts1.Spec.Template.Spec.InitContainers[i].LivenessProbe = sts2.Spec.Template.Spec.InitContainers[i].LivenessProbe
 		sts1.Spec.Template.Spec.InitContainers[i].ReadinessProbe = sts2.Spec.Template.Spec.InitContainers[i].ReadinessProbe
+		sts1.Spec.Template.Spec.InitContainers[i].ImagePullPolicy = sts2.Spec.Template.Spec.InitContainers[i].ImagePullPolicy
 
 		sts1.Spec.Template.Spec.InitContainers[i].TerminationMessagePath = sts2.Spec.Template.Spec.InitContainers[i].TerminationMessagePath
 		sts1.Spec.Template.Spec.InitContainers[i].TerminationMessagePolicy = sts2.Spec.Template.Spec.InitContainers[i].TerminationMessagePolicy
@@ -83,6 +89,7 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 	sts1.Spec.VolumeClaimTemplates = sts2.Spec.VolumeClaimTemplates
 	sts1.Spec.PodManagementPolicy = sts2.Spec.PodManagementPolicy
 	sts1.Spec.RevisionHistoryLimit = sts2.Spec.RevisionHistoryLimit
+	sts1.Spec.UpdateStrategy = sts2.Spec.UpdateStrategy
 
 	if !apiequality.Semantic.DeepEqual(sts1.Spec, sts2.Spec) {
 		logrus.Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))

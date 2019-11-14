@@ -149,7 +149,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 			return requeue30, nil
 		}
 	}
-	return forget, nil
+	return requeue5, nil
 }
 
 func (r *ReconcileClickHouseCluster) updateClickHouseStatus(cc *clickhousev1.ClickHouseCluster, status *clickhousev1.ClickHouseClusterStatus) {
@@ -174,10 +174,14 @@ func (r *ReconcileClickHouseCluster) updateClickHouseStatus(cc *clickhousev1.Cli
 	}
 	if readyCount == cc.Spec.ShardsCount {
 		cc.Status.Phase = ClusterPhaseRunning
+	} else {
+		cc.Status.Phase = ClusterPhaseInitial
 	}
 	err := r.client.Update(context.TODO(), cc)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{"cluster": cc.Name, "err": err}).Errorf("Issue when updating ClickHouseCluster")
+	} else {
+		logrus.Errorf("updating ClickHouseCluster")
 	}
 }
 
@@ -275,6 +279,11 @@ func (r *ReconcileClickHouseCluster) reconcileService(service *corev1.Service) e
 			return r.client.Create(context.TODO(), service)
 		}
 		return err
+	}
+
+	if reflect.DeepEqual(curService.Spec, service.Spec) {
+		logrus.Debug("no need to update service")
+		return nil
 	}
 
 	logrus.WithFields(logrus.Fields{

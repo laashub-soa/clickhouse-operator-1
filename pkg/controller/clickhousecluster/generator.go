@@ -202,16 +202,23 @@ func (g *Generator) generateService(shardID int) *corev1.Service {
 					Name:     chDefaultHTTPPortName,
 					Port:     chDefaultHTTPPortNumber,
 					Protocol: "TCP",
+					TargetPort: intstr.IntOrString{
+						IntVal: chDefaultHTTPPortNumber,
+					},
 				},
 				{
 					Name:     chDefaultClientPortName,
 					Port:     chDefaultClientPortNumber,
 					Protocol: "TCP",
+					TargetPort: intstr.IntOrString{
+						IntVal: chDefaultClientPortNumber,
+					},
 				},
 			},
-			Selector:  g.labelsForStatefulSet(shardID),
-			ClusterIP: "None",
-			Type:      "ClusterIP",
+			Selector:        g.labelsForStatefulSet(shardID),
+			ClusterIP:       "None",
+			SessionAffinity: "None",
+			Type:            "ClusterIP",
 		},
 	}
 }
@@ -223,8 +230,9 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			Labels: g.labelsForStatefulSet(shardID),
 		},
 		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{},
-			Volumes:    []corev1.Volume{},
+			Containers:    []corev1.Container{},
+			Volumes:       []corev1.Volume{},
+			RestartPolicy: "Always",
 		},
 	}
 	statefulset.Spec.Template.Spec.InitContainers = []corev1.Container{
@@ -253,7 +261,8 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					Name: "POD_NAME",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "metadata.name",
+							FieldPath:  "metadata.name",
+							APIVersion: "v1",
 						},
 					},
 				},
@@ -262,14 +271,17 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 				{
 					Name:          chDefaultHTTPPortName,
 					ContainerPort: chDefaultHTTPPortNumber,
+					Protocol:      "TCP",
 				},
 				{
 					Name:          chDefaultClientPortName,
 					ContainerPort: chDefaultClientPortNumber,
+					Protocol:      "TCP",
 				},
 				{
 					Name:          chDefaultInterServerPortName,
 					ContainerPort: chDefaultInterServerPortNumber,
+					Protocol:      "TCP",
 				},
 			},
 			ReadinessProbe: &corev1.Probe{
