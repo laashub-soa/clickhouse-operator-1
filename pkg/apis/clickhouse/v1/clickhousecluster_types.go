@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"encoding/json"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -97,6 +99,20 @@ type ClickHouseClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClickHouseCluster `json:"items"`
+}
+
+func (cc *ClickHouseCluster) ComputeLastAppliedConfiguration() (string, error) {
+	lastcc := cc.DeepCopy()
+	//remove unnecessary fields
+	lastcc.Annotations = nil
+	lastcc.ResourceVersion = ""
+	lastcc.Status = ClickHouseClusterStatus{}
+
+	lastApplied, err := json.Marshal(lastcc)
+	if err != nil {
+		logrus.Errorf("[%s]: Cannot create last-applied-configuration = %v", cc.Name, err)
+	}
+	return string(lastApplied), err
 }
 
 func init() {

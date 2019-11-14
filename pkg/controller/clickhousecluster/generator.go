@@ -237,7 +237,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
 							FieldPath:  "metadata.name",
-							APIVersion: "clickhousev1",
+							APIVersion: "v1",
 						},
 					},
 				},

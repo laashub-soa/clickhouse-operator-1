@@ -10,9 +10,8 @@ const (
 	ClusterPhaseUpdating = "Updating"
 	ClusterPhaseRunning  = "Running"
 
-	ShardPhaseRunning  = "Running"
-	ShardPhaseInitial  = "Initial"
-	ShardPhaseUpdating = "Updating"
+	ShardPhaseRunning = "Running"
+	ShardPhaseInitial = "Initial"
 )
 
 type Replica struct {

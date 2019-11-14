@@ -24,10 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+var needUpdate bool
 
 // Add creates a new ClickHouseCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -91,53 +88,44 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	requeue30 := reconcile.Result{RequeueAfter: 30 * time.Second}
 	forget := reconcile.Result{}
 
-	// Fetch the ClickHouseCluster instance
-	instance := &clickhousev1.ClickHouseCluster{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	// Fetch the ClickHouseCluster
+	cc := &clickhousev1.ClickHouseCluster{}
+
+	err := r.client.Get(context.TODO(), request.NamespacedName, cc)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Delete ClickHouseCluster")
 			return forget, nil
 		}
-		log.WithField("error", err).Error("get clickhouse instance error")
+		log.WithField("error", err).Error("get clickhouse cluster error")
 		return forget, err
 	}
 
-	//Set Default Values
-	if instance.Status.Phase == "" {
-		changed := r.setDefaults(instance, r.defaultConfig)
-		if changed {
-			log.Info("Update ClickHouseCluster")
-			if err = r.updateAnnotationLastApplied(instance); err != nil {
-				log.WithField("error", err).Error("update AnnotationLastApplied error")
-				return forget, err
-			}
-			if err = r.client.Update(context.TODO(), instance); err != nil {
-				log.WithField("error", err).Error("update ClickHouseCluster error")
-				return forget, err
-			}
-			return forget, nil
-		}
+	if cc.Annotations == nil {
+		cc.Annotations = make(map[string]string)
+	}
+	if cc.Status.ShardStatus == nil {
+		cc.Status.ShardStatus = make(map[string]*clickhousev1.ShardStatus)
 	}
 
-	status := instance.Status.DeepCopy()
-	defer r.updateClickHouseStatus(instance, status)
+	//Set Default Values
+	if cc.Status.Phase == "" {
+		needUpdate = r.setDefaults(cc, r.defaultConfig)
+	}
+
+	status := cc.Status.DeepCopy()
+	defer r.updateClickHouseStatus(cc, status)
 
 	//Some changes are not allowed, so we need to recovery to old one
-	if r.CheckNonAllowedChanges(instance) {
-		err = r.recoveryCRD(instance)
+	if r.CheckNonAllowedChanges(cc) {
+		err = r.recoveryCRD(cc)
 		if err != nil {
 			log.WithField("error", err).Error("recovery ClickHouseCluster error")
 			return requeue30, err
 		}
-		if err = r.client.Update(context.TODO(), instance); err != nil {
-			log.WithField("error", err).Error("update ClickHouseCluster error")
-			return requeue30, err
-		}
-		return forget, nil
 	}
 
-	var generator = NewGenerator(r, instance)
+	var generator = NewGenerator(r, cc)
 
 	commonConfigMap := generator.GenerateCommonConfigMap()
 	if err := r.reconcileConfigMap(commonConfigMap); err != nil {
@@ -151,19 +139,46 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	//	return err
 	//}
 
-	for shardID := 0; shardID < int(instance.Spec.ShardsCount); shardID++ {
-		if err = r.reconcileShard(generator, shardID, status); err != nil {
+	for shardID := 0; shardID < int(cc.Spec.ShardsCount); shardID++ {
+		var ready bool
+		if ready, err = r.reconcileShard(generator, shardID, status); err != nil {
 			log.WithField("error", err).Error("reconcileShard error")
 			return requeue5, err
+		}
+		if !ready {
+			return requeue30, nil
 		}
 	}
 	return forget, nil
 }
 
-func (r *ReconcileClickHouseCluster) updateClickHouseStatus(
-	instance *clickhousev1.ClickHouseCluster,
-	status *clickhousev1.ClickHouseClusterStatus) {
-	return
+func (r *ReconcileClickHouseCluster) updateClickHouseStatus(cc *clickhousev1.ClickHouseCluster, status *clickhousev1.ClickHouseClusterStatus) {
+	defer func() {
+		needUpdate = false
+	}()
+	lastApplied, _ := cc.ComputeLastAppliedConfiguration()
+	if !needUpdate && reflect.DeepEqual(cc.Status, *status) &&
+		reflect.DeepEqual(cc.Annotations[clickhousev1.AnnotationLastApplied], lastApplied) &&
+		cc.Annotations[clickhousev1.AnnotationLastApplied] != "" {
+		return
+	}
+
+	cc.Annotations[clickhousev1.AnnotationLastApplied] = lastApplied
+	cc.Status = *status.DeepCopy()
+
+	var readyCount int32
+	for _, s := range cc.Status.ShardStatus {
+		if s.Phase == ShardPhaseRunning {
+			readyCount++
+		}
+	}
+	if readyCount == cc.Spec.ShardsCount {
+		cc.Status.Phase = ClusterPhaseRunning
+	}
+	err := r.client.Update(context.TODO(), cc)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{"cluster": cc.Name, "err": err}).Errorf("Issue when updating ClickHouseCluster")
+	}
 }
 
 func (r *ReconcileClickHouseCluster) updateAnnotationLastApplied(cc *clickhousev1.ClickHouseCluster) error {
@@ -188,19 +203,29 @@ func (r *ReconcileClickHouseCluster) recoveryCRD(cc *clickhousev1.ClickHouseClus
 	return nil
 }
 
-func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int, status *clickhousev1.ClickHouseClusterStatus) error {
+func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int, status *clickhousev1.ClickHouseClusterStatus) (bool, error) {
 	service := generator.generateService(shardID)
 	if err := r.reconcileService(service); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
-		return err
+		return false, err
 	}
 
 	statefulSet := generator.generateStatefulSet(shardID)
 	if err := r.reconcileStatefulSet(statefulSet); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("create statefulSets error")
-		return err
+		return false, err
 	}
-	return nil
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: statefulSet.Namespace, Name: statefulSet.Name}, statefulSet); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("get statefulSets error")
+		return false, err
+	}
+	if isStatefulSetReady(statefulSet) {
+		status.ShardStatus[statefulSet.Name] = &clickhousev1.ShardStatus{Phase: ShardPhaseRunning}
+		return true, nil
+	} else {
+		status.ShardStatus[statefulSet.Name] = &clickhousev1.ShardStatus{Phase: ShardPhaseInitial}
+		return false, nil
+	}
 }
 
 // CheckNonAllowedChanges - checks if there are some changes on CRD that are not allowed on statefulset
@@ -351,9 +376,6 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 	if c.Spec.CustomSettings == "" {
 		c.Spec.CustomSettings = "<yandex></yandex>"
 	}
-	c.Annotations = make(map[string]string)
-	c.Status.ShardStatus = make(map[string]*clickhousev1.ShardStatus)
-
 	return changed
 }
 
