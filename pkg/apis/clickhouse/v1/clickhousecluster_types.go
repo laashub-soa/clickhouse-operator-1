@@ -47,7 +47,17 @@ type ClickHouseClusterSpec struct {
 // ClickHouseClusterStatus defines the observed state of ClickHouseCluster
 // +k8s:openapi-gen=true
 type ClickHouseClusterStatus struct {
-	Status string `json:"status,omitempty"`
+	Phase string `json:"phase,omitempty"`
+	//CassandraRackStatusList list les Status pour chaque Racks
+	ShardStatus map[string]*ShardStatus `json:"cassandraRackStatus,omitempty"`
+}
+
+//ShardStatus defines states of Clickhouse for 1 shard (1 statefulset)
+type ShardStatus struct {
+	// Phase indicates the state this Clickhouse cluster jumps in.
+	// Phase goes as one way as below:
+	//   Initial -> Running <-> updating
+	Phase string `json:"phase,omitempty"`
 }
 
 // ZookeeperConfig defines zookeeper

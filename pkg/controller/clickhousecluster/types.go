@@ -4,6 +4,15 @@ import (
 	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 )
 
+const (
+	ClusterPhaseInitial  = "Initializing"
+	ClusterPhaseUpdating = "Updating"
+	ClusterPhaseRunning  = "Running"
+
+	ShardPhaseRunning  = "Running"
+	ShardPhaseUpdating = "Updating"
+)
+
 type Replica struct {
 	Host string `xml:"host"`
 	Port int    `xml:"port"`

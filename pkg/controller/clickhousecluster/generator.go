@@ -29,8 +29,6 @@ const (
 	filenameZookeeperXML = "zookeeper.xml"
 	filenameSettingsXML  = "settings.xml"
 
-	ClusterPhaseInitial = "Initializing"
-
 	dirPathConfigd = "/etc/clickhouse-server/config.d/"
 	//dirPathUsersd  = "/etc/clickhouse-server/users.d/"
 	dirPathConfd = "/etc/clickhouse-server/conf.d/"
@@ -189,16 +187,6 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 	}
 }
 
-func (g *Generator) GerateServices() []*corev1.Service {
-	var services = make([]*corev1.Service, 0)
-	var count = int(g.cc.Spec.ShardsCount)
-	for i := 0; i < count; i++ {
-		s := g.generateService(i)
-		services = append(services, s)
-	}
-	return services
-}
-
 func (g *Generator) generateService(shardID int) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -343,16 +331,6 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 //TODO
 func (g *Generator) setupStatefulSetVolumeClaimTemplates(statefulset *appsv1.StatefulSet) {
 
-}
-
-func (g *Generator) GenerateStatefulSets() []*appsv1.StatefulSet {
-	var statefulSets = make([]*appsv1.StatefulSet, 0)
-	var count = int(g.cc.Spec.ShardsCount)
-	for i := 0; i < count; i++ {
-		s := g.generateStatefulSet(i)
-		statefulSets = append(statefulSets, s)
-	}
-	return statefulSets
 }
 
 func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {

@@ -34,7 +34,7 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcileShard.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	defaultConfig, err := config.LoadDefaultConfig()
 	if err != nil {
@@ -43,7 +43,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileClickHouseCluster{client: mgr.GetClient(), scheme: mgr.GetScheme(), defaultConfig: defaultConfig}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcileShard.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("clickhousecluster-controller", mgr, controller.Options{Reconciler: r})
@@ -70,7 +70,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileClickHouseCluster implements reconcile.Reconciler
+// blank assignment to verify that ReconcileClickHouseCluster implements reconcileShard.Reconciler
 var _ reconcile.Reconciler = &ReconcileClickHouseCluster{}
 
 // ReconcileClickHouseCluster reconciles a ClickHouseCluster object
@@ -87,7 +87,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	log := logrus.WithFields(logrus.Fields{"namespace": request.Namespace, "name": request.Name})
 
 	requeue5 := reconcile.Result{RequeueAfter: 5 * time.Second}
-	//requeue := reconcile.Result{Requeue: true}
+	//requeue := reconcileShard.Result{Requeue: true}
 	forget := reconcile.Result{}
 
 	// Fetch the ClickHouseCluster instance
@@ -102,12 +102,19 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return forget, err
 	}
 
-	if instance.Status.Status == "" {
+	if instance.Status.Phase == "" {
 		changed := r.setDefaults(instance, r.defaultConfig)
 		if changed {
 			log.Info("Update ClickHouseCluster")
-			err = r.client.Update(context.TODO(), instance)
-			return forget, err
+			if err = r.updateAnnotationLastApplied(instance); err != nil {
+				log.WithField("error", err).Error("update AnnotationLastApplied error")
+				return forget, err
+			}
+			if err = r.client.Update(context.TODO(), instance); err != nil {
+				log.WithField("error", err).Error("update ClickHouseCluster error")
+				return forget, err
+			}
+			return forget, nil
 		}
 	}
 
@@ -118,11 +125,26 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return requeue5, nil
 	}
 
-	if err = r.reconcile(instance); err != nil {
-		log.WithField("error", err).Error("reconcile error")
+	var generator = NewGenerator(r, instance)
+
+	commonConfigMap := generator.GenerateCommonConfigMap()
+	if err := r.reconcileConfigMap(commonConfigMap); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": commonConfigMap.Namespace, "name": commonConfigMap.Name, "error": err}).Error("create command configmap error")
 		return requeue5, err
 	}
 
+	//userConfigMap := generator.generateUserConfigMap()
+	//if err := r.reconcileConfigMap(userConfigMap); err != nil {
+	//	logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create user configmap error")
+	//	return err
+	//}
+
+	for shardID := 0; shardID < int(instance.Spec.ShardsCount); shardID++ {
+		if err = r.reconcileShard(generator, shardID); err != nil {
+			log.WithField("error", err).Error("reconcileShard error")
+			return requeue5, err
+		}
+	}
 	return forget, nil
 }
 
@@ -132,36 +154,26 @@ func (r *ReconcileClickHouseCluster) updateClickHouseStatus(
 	return
 }
 
-func (r *ReconcileClickHouseCluster) reconcile(instance *clickhousev1.ClickHouseCluster) error {
-	var generator = NewGenerator(r, instance)
-
-	//Service for Clickhouse
-	services := generator.GerateServices()
-	for _, s := range services {
-		if err := r.ReconcileService(s); err != nil {
-			logrus.WithFields(logrus.Fields{"namespace": s.Namespace, "name": s.Name, "error": err}).Error("create service error")
-			return err
-		}
+func (r *ReconcileClickHouseCluster) updateAnnotationLastApplied(cc *clickhousev1.ClickHouseCluster) error {
+	last, err := json.Marshal(cc)
+	if err != nil {
+		return err
 	}
+	cc.Annotations[clickhousev1.AnnotationLastApplied] = string(last)
+	return nil
+}
 
-	commonConfigMap := generator.GenerateCommonConfigMap()
-	if err := r.ReconcileConfigMap(commonConfigMap); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": commonConfigMap.Namespace, "name": commonConfigMap.Name, "error": err}).Error("create command configmap error")
+func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int) error {
+	service := generator.generateService(shardID)
+	if err := r.reconcileService(service); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
 		return err
 	}
 
-	//userConfigMap := generator.generateUserConfigMap()
-	//if err := r.ReconcileConfigMap(userConfigMap); err != nil {
-	//	logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create user configmap error")
-	//	return err
-	//}
-
-	statefulSets := generator.GenerateStatefulSets()
-	for _, s := range statefulSets {
-		if err := r.ReconcileStatefulSet(s); err != nil {
-			logrus.WithFields(logrus.Fields{"namespace": s.Namespace, "name": s.Name, "error": err}).Error("create statefulSets error")
-			return err
-		}
+	statefulSet := generator.generateStatefulSet(shardID)
+	if err := r.reconcileStatefulSet(statefulSet); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("create statefulSets error")
+		return err
 	}
 	return nil
 }
@@ -200,7 +212,7 @@ func (r *ReconcileClickHouseCluster) CheckNonAllowedChanges(instance *clickhouse
 	return false
 }
 
-func (r *ReconcileClickHouseCluster) ReconcileService(service *corev1.Service) error {
+func (r *ReconcileClickHouseCluster) reconcileService(service *corev1.Service) error {
 	var curService corev1.Service
 	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: service.Namespace, Name: service.Name}, &curService)
 	// Object with such name does not exist or error happened
@@ -229,9 +241,10 @@ func (r *ReconcileClickHouseCluster) ReconcileService(service *corev1.Service) e
 	return r.client.Update(context.TODO(), service)
 }
 
-func (r *ReconcileClickHouseCluster) ReconcileConfigMap(configMap *corev1.ConfigMap) error {
+func (r *ReconcileClickHouseCluster) reconcileConfigMap(configMap *corev1.ConfigMap) error {
 	var curConfigMap corev1.ConfigMap
 	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: configMap.Namespace, Name: configMap.Name}, &curConfigMap)
+
 	// Object with such name does not exist or error happened
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -250,7 +263,7 @@ func (r *ReconcileClickHouseCluster) ReconcileConfigMap(configMap *corev1.Config
 	return r.client.Update(context.TODO(), configMap)
 }
 
-func (r *ReconcileClickHouseCluster) ReconcileStatefulSet(statefulSet *appsv1.StatefulSet) error {
+func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.StatefulSet) error {
 	// Check whether object with such name already exists in k8s
 	var curStatefulSet appsv1.StatefulSet
 
@@ -276,8 +289,8 @@ func (r *ReconcileClickHouseCluster) ReconcileStatefulSet(statefulSet *appsv1.St
 
 func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseCluster, config *config.DefaultConfig) bool {
 	var changed = false
-	if c.Status.Status == "" {
-		c.Status.Status = ClusterPhaseInitial
+	if c.Status.Phase == "" {
+		c.Status.Phase = ClusterPhaseInitial
 		changed = true
 	}
 	if c.Spec.Image == "" {
@@ -304,6 +317,8 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 	if c.Spec.CustomSettings == "" {
 		c.Spec.CustomSettings = "<yandex></yandex>"
 	}
+	c.Annotations = make(map[string]string)
+	c.Status.ShardStatus = make(map[string]*clickhousev1.ShardStatus)
 
 	return changed
 }

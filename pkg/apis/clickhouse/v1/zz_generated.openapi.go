@@ -111,7 +111,7 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 					},
 					"CustomSettings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Custom defined XML settings",
+							Description: "Custom defined XML settings, like <yandex>somethine</yandex>",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -146,14 +146,30 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterStatus(ref common.ReferenceC
 				Description: "Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564 ClickHouseClusterStatus defines the observed state of ClickHouseCluster",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"status": {
+					"phase": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
 						},
 					},
+					"cassandraRackStatus": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CassandraRackStatusList list les Status pour chaque Racks",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ShardStatus"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ShardStatus"},
 	}
 }

@@ -2,6 +2,7 @@ package clickhousecluster
 
 import (
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
 	"reflect"
 	"strings"
 )
@@ -46,4 +47,9 @@ func doParse(v reflect.Value, indent int, father string) string {
 func ParseXML(s interface{}) string {
 	v := reflect.ValueOf(s)
 	return fmt.Sprintf("<yandex>\n%s\n</yandex>", doParse(v, 1, ""))
+}
+
+func isStatefulSetReady(statefulSet *appsv1.StatefulSet) bool {
+	return statefulSet.Status.Replicas == *statefulSet.Spec.Replicas &&
+		statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas
 }
