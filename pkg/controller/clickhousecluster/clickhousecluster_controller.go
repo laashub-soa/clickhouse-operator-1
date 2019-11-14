@@ -149,6 +149,23 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 			return requeue30, nil
 		}
 	}
+	/*
+		var statefulSets = appsv1.StatefulSetList{}
+		err = r.client.List(context.TODO(), &statefulSets, &client.ListOptions{
+			LabelSelector:labels.SelectorFromSet(map[string]string{
+				"clickhouse-cluster": cc.Name,
+			}),
+		})
+		if err != nil {
+			log.WithField("error", err).Error("List statefulset error")
+			return requeue5, err
+		}
+		count := len(statefulSets.Items)
+		for {
+			if count > int(cc.Spec.ShardsCount) {
+			}
+		}
+	*/
 	return requeue5, nil
 }
 
@@ -181,17 +198,8 @@ func (r *ReconcileClickHouseCluster) updateClickHouseStatus(cc *clickhousev1.Cli
 	if err != nil {
 		logrus.WithFields(logrus.Fields{"cluster": cc.Name, "err": err}).Errorf("Issue when updating ClickHouseCluster")
 	} else {
-		logrus.Errorf("updating ClickHouseCluster")
+		logrus.WithFields(logrus.Fields{"cluster": cc.Name}).Info("Updating ClickHouseCluster")
 	}
-}
-
-func (r *ReconcileClickHouseCluster) updateAnnotationLastApplied(cc *clickhousev1.ClickHouseCluster) error {
-	last, err := json.Marshal(cc)
-	if err != nil {
-		return err
-	}
-	cc.Annotations[clickhousev1.AnnotationLastApplied] = string(last)
-	return nil
 }
 
 func (r *ReconcileClickHouseCluster) recoveryCRD(cc *clickhousev1.ClickHouseCluster) error {
@@ -208,21 +216,23 @@ func (r *ReconcileClickHouseCluster) recoveryCRD(cc *clickhousev1.ClickHouseClus
 }
 
 func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int, status *clickhousev1.ClickHouseClusterStatus) (bool, error) {
-	service := generator.generateService(shardID)
-	if err := r.reconcileService(service); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
-		return false, err
-	}
-
 	statefulSet := generator.generateStatefulSet(shardID)
 	if err := r.reconcileStatefulSet(statefulSet); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("create statefulSets error")
 		return false, err
 	}
+
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: statefulSet.Namespace, Name: statefulSet.Name}, statefulSet); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("get statefulSets error")
 		return false, err
 	}
+
+	service := generator.generateService(shardID, statefulSet)
+	if err := r.reconcileService(service); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
+		return false, err
+	}
+
 	if isStatefulSetReady(statefulSet) {
 		status.ShardStatus[statefulSet.Name] = &clickhousev1.ShardStatus{Phase: ShardPhaseRunning}
 		return true, nil
@@ -387,28 +397,3 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 	}
 	return changed
 }
-
-////Todo: use object replace statefulset/service/configmap
-//func (r *ReconcileClickHouseCluster) ReconcileObject(obj runtime.Object) error {
-//	// Check whether object with such name already exists in k8s
-//	var curObject runtime.Object
-//
-//	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: statefulSet.Namespace, Name: statefulSet.Name}, &curObject)
-//
-//	// Object with such name does not exist or error happened
-//	if err != nil {
-//		if apierrors.IsNotFound(err) {
-//			// Object with such name not found - create it
-//			logrus.WithFields(logrus.Fields{
-//				"statefulset":   statefulSet.Name,
-//				"namespace": statefulSet.Namespace}).Info("Create StatefulSet")
-//			return r.client.Create(context.TODO(), statefulSet)
-//		}
-//		return err
-//	}
-//
-//	logrus.WithFields(logrus.Fields{
-//		"configmap":   statefulSet.Name,
-//		"namespace": statefulSet.Namespace}).Info("Update ConfigMap")
-//	return r.client.Update(context.TODO(), statefulSet)
-//}

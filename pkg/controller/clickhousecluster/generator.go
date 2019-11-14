@@ -187,13 +187,18 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 	}
 }
 
-func (g *Generator) generateService(shardID int) *corev1.Service {
+func (g *Generator) generateService(shardID int, statefulset *appsv1.StatefulSet) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            g.serviceName(shardID),
-			Namespace:       g.cc.Namespace,
-			Labels:          g.labelsForStatefulSet(shardID),
-			OwnerReferences: g.ownerReference(),
+			Name:      g.serviceName(shardID),
+			Namespace: g.cc.Namespace,
+			Labels:    g.labelsForStatefulSet(shardID),
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: statefulset.APIVersion,
+				Kind:       statefulset.Kind,
+				Name:       statefulset.Name,
+				UID:        statefulset.UID,
+			}},
 		},
 		Spec: corev1.ServiceSpec{
 			// ClusterIP: templateDefaultsServiceClusterIP,
