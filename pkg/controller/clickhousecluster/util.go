@@ -2,8 +2,12 @@ package clickhousecluster
 
 import (
 	"fmt"
+	"github.com/kylelemons/godebug/pretty"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	"reflect"
+
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"strings"
 )
 
@@ -52,4 +56,41 @@ func ParseXML(s interface{}) string {
 func isStatefulSetReady(statefulSet *appsv1.StatefulSet) bool {
 	return statefulSet.Status.Replicas == *statefulSet.Spec.Replicas &&
 		statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas
+}
+
+// sts1 = stored statefulset and sts2 = new generated statefulset
+func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
+
+	sts1.Spec.Template.Spec.SchedulerName = sts2.Spec.Template.Spec.SchedulerName
+	sts1.Spec.Template.Spec.DNSPolicy = sts2.Spec.Template.Spec.DNSPolicy // ClusterFirst
+	for i := 0; i < len(sts1.Spec.Template.Spec.Containers); i++ {
+		sts1.Spec.Template.Spec.Containers[i].LivenessProbe = sts2.Spec.Template.Spec.Containers[i].LivenessProbe
+		sts1.Spec.Template.Spec.Containers[i].ReadinessProbe = sts2.Spec.Template.Spec.Containers[i].ReadinessProbe
+
+		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePath = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePath
+		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePolicy = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePolicy
+	}
+
+	for i := 0; i < len(sts1.Spec.Template.Spec.InitContainers); i++ {
+		sts1.Spec.Template.Spec.InitContainers[i].LivenessProbe = sts2.Spec.Template.Spec.InitContainers[i].LivenessProbe
+		sts1.Spec.Template.Spec.InitContainers[i].ReadinessProbe = sts2.Spec.Template.Spec.InitContainers[i].ReadinessProbe
+
+		sts1.Spec.Template.Spec.InitContainers[i].TerminationMessagePath = sts2.Spec.Template.Spec.InitContainers[i].TerminationMessagePath
+		sts1.Spec.Template.Spec.InitContainers[i].TerminationMessagePolicy = sts2.Spec.Template.Spec.InitContainers[i].TerminationMessagePolicy
+	}
+
+	//some defaultMode changes make falsepositif, so we bypass this, we already have check on configmap changes
+	sts1.Spec.VolumeClaimTemplates = sts2.Spec.VolumeClaimTemplates
+	sts1.Spec.PodManagementPolicy = sts2.Spec.PodManagementPolicy
+	sts1.Spec.RevisionHistoryLimit = sts2.Spec.RevisionHistoryLimit
+
+	if !apiequality.Semantic.DeepEqual(sts1.Spec, sts2.Spec) {
+		logrus.Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))
+		logrus.WithFields(logrus.Fields{"statefulset": sts1.Name,
+			"namespace": sts1.Namespace}).Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))
+
+		return false
+	}
+
+	return true
 }

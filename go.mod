@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-openapi/spec v0.19.0
+	github.com/kylelemons/godebug v1.1.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da

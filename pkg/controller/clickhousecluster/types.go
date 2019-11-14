@@ -6,10 +6,12 @@ import (
 
 const (
 	ClusterPhaseInitial  = "Initializing"
+	ClusterPhaseCreating = "Creating"
 	ClusterPhaseUpdating = "Updating"
 	ClusterPhaseRunning  = "Running"
 
 	ShardPhaseRunning  = "Running"
+	ShardPhaseInitial  = "Initial"
 	ShardPhaseUpdating = "Updating"
 )
 

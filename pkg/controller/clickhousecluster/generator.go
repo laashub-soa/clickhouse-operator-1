@@ -3,7 +3,7 @@ package clickhousecluster
 import (
 	"encoding/json"
 	"fmt"
-	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -45,10 +45,10 @@ const (
 
 type Generator struct {
 	rcc *ReconcileClickHouseCluster
-	cc  *v1.ClickHouseCluster
+	cc  *clickhousev1.ClickHouseCluster
 }
 
-func NewGenerator(rcc *ReconcileClickHouseCluster, cc *v1.ClickHouseCluster) *Generator {
+func NewGenerator(rcc *ReconcileClickHouseCluster, cc *clickhousev1.ClickHouseCluster) *Generator {
 	return &Generator{rcc: rcc, cc: cc}
 }
 
@@ -199,12 +199,14 @@ func (g *Generator) generateService(shardID int) *corev1.Service {
 			// ClusterIP: templateDefaultsServiceClusterIP,
 			Ports: []corev1.ServicePort{
 				{
-					Name: chDefaultHTTPPortName,
-					Port: chDefaultHTTPPortNumber,
+					Name:     chDefaultHTTPPortName,
+					Port:     chDefaultHTTPPortNumber,
+					Protocol: "TCP",
 				},
 				{
-					Name: chDefaultClientPortName,
-					Port: chDefaultClientPortNumber,
+					Name:     chDefaultClientPortName,
+					Port:     chDefaultClientPortNumber,
+					Protocol: "TCP",
 				},
 			},
 			Selector:  g.labelsForStatefulSet(shardID),
@@ -234,7 +236,8 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					Name: "POD_NAME",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "metadata.name",
+							FieldPath:  "metadata.name",
+							APIVersion: "clickhousev1",
 						},
 					},
 				},
@@ -369,6 +372,7 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 
 // newVolumeForConfigMap returns corev1.Volume object with defined name
 func newVolumeForConfigMap(name string) corev1.Volume {
+	var defaultMode int32 = 420
 	return corev1.Volume{
 		Name: name,
 		VolumeSource: corev1.VolumeSource{
@@ -376,6 +380,7 @@ func newVolumeForConfigMap(name string) corev1.Volume {
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: name,
 				},
+				DefaultMode: &defaultMode,
 			},
 		},
 	}

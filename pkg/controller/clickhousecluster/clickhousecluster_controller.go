@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/mackwong/clickhouse-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -87,7 +88,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	log := logrus.WithFields(logrus.Fields{"namespace": request.Namespace, "name": request.Name})
 
 	requeue5 := reconcile.Result{RequeueAfter: 5 * time.Second}
-	//requeue := reconcileShard.Result{Requeue: true}
+	requeue30 := reconcile.Result{RequeueAfter: 30 * time.Second}
 	forget := reconcile.Result{}
 
 	// Fetch the ClickHouseCluster instance
@@ -102,6 +103,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return forget, err
 	}
 
+	//Set Default Values
 	if instance.Status.Phase == "" {
 		changed := r.setDefaults(instance, r.defaultConfig)
 		if changed {
@@ -121,8 +123,18 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	status := instance.Status.DeepCopy()
 	defer r.updateClickHouseStatus(instance, status)
 
+	//Some changes are not allowed, so we need to recovery to old one
 	if r.CheckNonAllowedChanges(instance) {
-		return requeue5, nil
+		err = r.recoveryCRD(instance)
+		if err != nil {
+			log.WithField("error", err).Error("recovery ClickHouseCluster error")
+			return requeue30, err
+		}
+		if err = r.client.Update(context.TODO(), instance); err != nil {
+			log.WithField("error", err).Error("update ClickHouseCluster error")
+			return requeue30, err
+		}
+		return forget, nil
 	}
 
 	var generator = NewGenerator(r, instance)
@@ -140,7 +152,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	//}
 
 	for shardID := 0; shardID < int(instance.Spec.ShardsCount); shardID++ {
-		if err = r.reconcileShard(generator, shardID); err != nil {
+		if err = r.reconcileShard(generator, shardID, status); err != nil {
 			log.WithField("error", err).Error("reconcileShard error")
 			return requeue5, err
 		}
@@ -163,7 +175,20 @@ func (r *ReconcileClickHouseCluster) updateAnnotationLastApplied(cc *clickhousev
 	return nil
 }
 
-func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int) error {
+func (r *ReconcileClickHouseCluster) recoveryCRD(cc *clickhousev1.ClickHouseCluster) error {
+	var oldCRD clickhousev1.ClickHouseCluster
+	if cc.Annotations[clickhousev1.AnnotationLastApplied] == "" {
+		return fmt.Errorf("can not find last-applied-configuration")
+	}
+	err := json.Unmarshal([]byte(cc.Annotations[clickhousev1.AnnotationLastApplied]), &oldCRD)
+	if err != nil {
+		return err
+	}
+	cc.Spec = oldCRD.Spec
+	return nil
+}
+
+func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int, status *clickhousev1.ClickHouseClusterStatus) error {
 	service := generator.generateService(shardID)
 	if err := r.reconcileService(service); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
@@ -244,7 +269,6 @@ func (r *ReconcileClickHouseCluster) reconcileService(service *corev1.Service) e
 func (r *ReconcileClickHouseCluster) reconcileConfigMap(configMap *corev1.ConfigMap) error {
 	var curConfigMap corev1.ConfigMap
 	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: configMap.Namespace, Name: configMap.Name}, &curConfigMap)
-
 	// Object with such name does not exist or error happened
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -255,6 +279,11 @@ func (r *ReconcileClickHouseCluster) reconcileConfigMap(configMap *corev1.Config
 			return r.client.Create(context.TODO(), configMap)
 		}
 		return err
+	}
+
+	if reflect.DeepEqual(curConfigMap.Data, configMap.Data) {
+		logrus.Debug("no need to update configmap")
+		return nil
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -268,7 +297,6 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.St
 	var curStatefulSet appsv1.StatefulSet
 
 	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: statefulSet.Namespace, Name: statefulSet.Name}, &curStatefulSet)
-
 	// Object with such name does not exist or error happened
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -279,6 +307,12 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.St
 			return r.client.Create(context.TODO(), statefulSet)
 		}
 		return err
+	}
+
+	//TODO: 更合适的比较
+	if statefulSetsAreEqual(statefulSet, &curStatefulSet) {
+		logrus.Debug("no need to update staefulset")
+		return nil
 	}
 
 	logrus.WithFields(logrus.Fields{
