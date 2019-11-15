@@ -152,10 +152,9 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterStatus(ref common.ReferenceC
 							Format: "",
 						},
 					},
-					"cassandraRackStatus": {
+					"shardStatus": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CassandraRackStatusList list les Status pour chaque Racks",
-							Type:        []string{"object"},
+							Type: []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
 								Schema: &spec.Schema{

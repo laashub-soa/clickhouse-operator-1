@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -32,6 +33,7 @@ const (
 	dirPathConfigd = "/etc/clickhouse-server/config.d/"
 	//dirPathUsersd  = "/etc/clickhouse-server/users.d/"
 	dirPathConfd = "/etc/clickhouse-server/conf.d/"
+	dirPathData  = "/var/lib/clickhouse/"
 
 	macrosTemplate = `
 <yandex>
@@ -54,14 +56,14 @@ func NewGenerator(rcc *ReconcileClickHouseCluster, cc *clickhousev1.ClickHouseCl
 
 func (g *Generator) labelsForStatefulSet(shardID int) map[string]string {
 	return map[string]string{
-		"clickhouse-cluster": g.cc.Name,
-		"shard-id":           fmt.Sprintf("%d", shardID),
+		DefaultLabelKey: g.cc.Name,
+		"shard-id":      fmt.Sprintf("%d", shardID),
 	}
 }
 
 func (g *Generator) labelsForCluster() map[string]string {
 	return map[string]string{
-		"clickhouse-cluster": g.cc.Name,
+		DefaultLabelKey: g.cc.Name,
 	}
 }
 
@@ -87,8 +89,8 @@ func (g *Generator) userConfigMapName() string {
 	return fmt.Sprintf("clickhouse-%s-user-config", g.cc.Name)
 }
 
-func (g *Generator) macrosConfigMapName() string {
-	return fmt.Sprintf("clickhouse-%s-macros-config", g.cc.Name)
+func (g *Generator) volumeClaimName() string {
+	return fmt.Sprintf("clickhouse-%s-volume-claim", g.cc.Name)
 }
 
 func (g *Generator) statefulSetName(shardID int) string {
@@ -316,7 +318,6 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 		newVolumeForConfigMap(g.commonConfigMapName()),
 		newVolumeForEmptyDir(g.marosEmptyDirName()),
 		//newVolumeForConfigMap(g.userConfigMapName()),
-		//newVolumeForConfigMap(g.macrosConfigMapName()),
 	)
 
 	// And reference these Volumes in each Container via VolumeMount
@@ -330,7 +331,6 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
 			newVolumeMount(g.marosEmptyDirName(), dirPathConfd),
 			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
-			//newVolumeMount(g.macrosConfigMapName(), dirPathConfd),
 		)
 	}
 
@@ -343,13 +343,34 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
 			newVolumeMount(g.marosEmptyDirName(), dirPathConfd),
 			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
-			//newVolumeMount(g.macrosConfigMapName(), dirPathConfd),
 		)
 	}
 }
 
-//TODO
-func (g *Generator) setupStatefulSetVolumeClaimTemplates(statefulset *appsv1.StatefulSet) {
+func (g *Generator) setupStatefulSetVolumeClaimTemplates(statefulSet *appsv1.StatefulSet, dataStorageClass, dataCapacity string) {
+	quantity, _ := resource.ParseQuantity(dataCapacity)
+	statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: g.volumeClaimName(),
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes:      []corev1.PersistentVolumeAccessMode{"ReadWriteOnce"},
+				StorageClassName: &dataStorageClass,
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: quantity,
+					},
+				},
+			},
+		},
+	}
+
+	for i := range statefulSet.Spec.Template.Spec.Containers {
+		// Convenience wrapper
+		container := &statefulSet.Spec.Template.Spec.Containers[i]
+		container.VolumeMounts = append(container.VolumeMounts, newVolumeMount(g.volumeClaimName(), dirPathData))
+	}
 
 }
 
@@ -382,7 +403,9 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 	}
 
 	g.setupStatefulSetPodTemplate(statefulSet, shardID)
-	g.setupStatefulSetVolumeClaimTemplates(statefulSet)
+	if g.cc.Spec.DataStorageClass != "" {
+		g.setupStatefulSetVolumeClaimTemplates(statefulSet, g.cc.Spec.DataStorageClass, g.cc.Spec.DataCapacity)
+	}
 
 	return statefulSet
 }

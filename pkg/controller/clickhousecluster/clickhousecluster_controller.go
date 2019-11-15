@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mackwong/clickhouse-operator/pkg/config"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"reflect"
+	"strconv"
 	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -113,6 +115,12 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		needUpdate = r.setDefaults(cc, r.defaultConfig)
 	}
 
+	err = r.CheckDeletePVC(cc)
+	if err != nil {
+		log.WithField("error", err).Error("check ClickHouseCluster delete pvc error")
+		return forget, err
+	}
+
 	status := cc.Status.DeepCopy()
 	defer r.updateClickHouseStatus(cc, status)
 
@@ -149,24 +157,95 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 			return requeue30, nil
 		}
 	}
-	/*
-		var statefulSets = appsv1.StatefulSetList{}
-		err = r.client.List(context.TODO(), &statefulSets, &client.ListOptions{
-			LabelSelector:labels.SelectorFromSet(map[string]string{
-				"clickhouse-cluster": cc.Name,
-			}),
-		})
-		if err != nil {
-			log.WithField("error", err).Error("List statefulset error")
-			return requeue5, err
+
+	if err = r.ScaleDownCluster(cc); err != nil {
+		return requeue30, err
+	}
+
+	if cc.DeletionTimestamp != nil && cc.Spec.DeletePVC {
+		preventClusterDeletion(cc, false)
+		if err = r.DeletePVCs(cc); err != nil {
+			log.WithField("error", err).Error("delete pvc error")
 		}
-		count := len(statefulSets.Items)
-		for {
-			if count > int(cc.Spec.ShardsCount) {
+		needUpdate = true
+	}
+
+	return requeue5, nil
+}
+
+func preventClusterDeletion(cc *clickhousev1.ClickHouseCluster, value bool) {
+	if value {
+		cc.SetFinalizers([]string{"kubernetes.io/pvc-to-delete"})
+		return
+	}
+	cc.SetFinalizers([]string{})
+}
+
+func updateDeletePvcStrategy(cc *clickhousev1.ClickHouseCluster) {
+	logrus.WithFields(logrus.Fields{"cluster": cc.Name, "deletePVC": cc.Spec.DeletePVC,
+		"finalizers": cc.Finalizers}).Debug("updateDeletePvcStrategy called")
+	// Remove Finalizers if DeletePVC is not enabled
+	if !cc.Spec.DeletePVC && len(cc.Finalizers) > 0 {
+		logrus.WithFields(logrus.Fields{"cluster": cc.Name}).Info("Won't delete PVCs when nodes are removed")
+		preventClusterDeletion(cc, false)
+	}
+	// Add Finalizer if DeletePVC is enabled
+	if cc.Spec.DeletePVC && len(cc.Finalizers) == 0 {
+		logrus.WithFields(logrus.Fields{"cluster": cc.Name}).Info("Will delete PVCs when nodes are removed")
+		preventClusterDeletion(cc, true)
+	}
+}
+
+func (r *ReconcileClickHouseCluster) CheckDeletePVC(cc *clickhousev1.ClickHouseCluster) error {
+	var oldCRD clickhousev1.ClickHouseCluster
+	if cc.Annotations[clickhousev1.AnnotationLastApplied] == "" {
+		return nil
+	}
+
+	//We retrieved our last-applied-configuration stored in the CRD
+	err := json.Unmarshal([]byte(cc.Annotations[clickhousev1.AnnotationLastApplied]), &oldCRD)
+	if err != nil {
+		logrus.Errorf("[%s]: Can't get Old version of CRD", cc.Name)
+		return nil
+	}
+
+	if cc.Spec.DeletePVC != oldCRD.Spec.DeletePVC {
+		logrus.WithFields(logrus.Fields{"cluster": cc.Name}).Debug("DeletePVC has been updated")
+		updateDeletePvcStrategy(cc)
+		return r.client.Update(context.TODO(), cc)
+	}
+	return nil
+}
+
+func (r *ReconcileClickHouseCluster) ScaleDownCluster(cc *clickhousev1.ClickHouseCluster) error {
+	var statefulSets = appsv1.StatefulSetList{}
+	log := logrus.WithFields(logrus.Fields{"namespace": cc.Namespace, "name": cc.Name})
+	err := r.client.List(context.TODO(), &statefulSets, &client.ListOptions{
+		Namespace: cc.Namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			DefaultLabelKey: cc.Name,
+		}),
+	})
+	if err != nil {
+		log.WithField("error", err).Error("List statefulset error")
+		return err
+	}
+
+	for _, statefulSet := range statefulSets.Items {
+		shardID, err := strconv.Atoi(statefulSet.Labels["shard-id"])
+		if err != nil {
+			log.WithField("error", err).Error("Get shard-id error")
+			return err
+		}
+		if shardID >= int(cc.Spec.ShardsCount) {
+			err = r.client.Delete(context.TODO(), &statefulSet)
+			if err != nil {
+				log.WithField("error", err).Error("Delete statefulSet error")
+				return err
 			}
 		}
-	*/
-	return requeue5, nil
+	}
+	return nil
 }
 
 func (r *ReconcileClickHouseCluster) updateClickHouseStatus(cc *clickhousev1.ClickHouseCluster, status *clickhousev1.ClickHouseClusterStatus) {
@@ -363,6 +442,32 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.St
 		"statefulSet": statefulSet.Name,
 		"namespace":   statefulSet.Namespace}).Info("Update StatefulSet")
 	return r.client.Update(context.TODO(), statefulSet)
+}
+
+func (r *ReconcileClickHouseCluster) DeletePVCs(cc *clickhousev1.ClickHouseCluster) error {
+	selector := map[string]string{
+		DefaultLabelKey: cc.Name,
+	}
+	lpvc, err := r.listPVC(cc.Namespace, selector)
+	if err != nil {
+		logrus.Errorf("failed to get clickhouse's PVC: %v", err)
+		return err
+	}
+	for _, pvc := range lpvc.Items {
+		err = r.client.Delete(context.TODO(), &pvc)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"PVC": pvc.Name, "Namespace": cc.Namespace}).Error("Error Deleting PVC")
+		} else {
+			logrus.WithFields(logrus.Fields{"PVC": pvc.Name, "Namespace": cc.Namespace}).Info("Delete PVC OK")
+		}
+	}
+	return nil
+}
+
+func (r *ReconcileClickHouseCluster) listPVC(namespace string, selector map[string]string) (*corev1.PersistentVolumeClaimList, error) {
+	opt := &client.ListOptions{Namespace: namespace, LabelSelector: labels.SelectorFromSet(selector)}
+	o := &corev1.PersistentVolumeClaimList{}
+	return o, r.client.List(context.TODO(), o, opt)
 }
 
 func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseCluster, config *config.DefaultConfig) bool {

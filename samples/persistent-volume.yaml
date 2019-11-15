@@ -1,0 +1,10 @@
+apiVersion: clickhouse.sensetime.com/v1
+kind: ClickHouseCluster
+metadata:
+  name: persistent-volume
+  namespace: test
+spec:
+  shardsCount: 2
+  replicasCount: 1
+  dataStorageClass: local-storage
+  dataCapacity: 1m

@@ -12,6 +12,8 @@ const (
 
 	ShardPhaseRunning = "Running"
 	ShardPhaseInitial = "Initializing"
+
+	DefaultLabelKey = "clickhouse-cluster"
 )
 
 type Replica struct {

@@ -1,0 +1,8 @@
+apiVersion: clickhouse.sensetime.com/v1
+kind: ClickHouseCluster
+metadata:
+  name: simple
+  namespace: test
+spec:
+  shardsCount: 1
+  replicasCount: 2
