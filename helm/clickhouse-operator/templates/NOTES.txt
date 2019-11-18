@@ -1,0 +1,4 @@
+Congratulations. You have just deployed the Clickhouse Operator.
+Check its status by running:
+kubectl --namespace {{ .Release.Namespace }} get pods -l "release={{ .Release.Name }}"
+

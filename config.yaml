@@ -1,8 +1,8 @@
-default_clickhouse_image: "registry.sensetime.com/diamond/clickhouse-server:latest"
-default_clickhouse_init_image: "registry.sensetime.com/diamond/clickhouse-init:latest"
+default_clickhouse_image: "registry.sensetime.com/diamond/service-providers/clickhouse-server:latest"
+default_clickhouse_init_image: "registry.sensetime.com/diamond/service-providers/clickhouse-init:latest"
 default_config:
-  - ./config/01-clickhouse-listen.xml
-  - ./config/02-clickhouse-logger.xml
+  - ./xml/01-clickhouse-listen.xml
+  - ./xml/02-clickhouse-logger.xml
 default_shard_count: 1
 default_replicas_count: 1
 default_zookeeper:

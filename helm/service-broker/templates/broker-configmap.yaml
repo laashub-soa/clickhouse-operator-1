@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-config"
+  namespace: {{ .Release.Namespace }}
+data:
+  clickhouse.yaml : |
+    - name: clickhouse
+      id: "137a3ded-59ab-4ece-bbda-9cfff850a1f3"
+      description: "Provide clickhouse as a service through Open service Broker!"
+      bindable: true
+      planupdatable: true
+      metadata:
+        display_name: clickhouse service
+        image_url: http://gitlab.bj.sensetime.com/uploads/-/system/project/avatar/10933/clickhouse-logo.png
+      plans:
+        - name: default
+          id: 2db0b31d-6912-4d24-8704-cfdf9b98af81
+          description: The default plan for the clickhouse service
+          free: true
+          schemas:
+            serviceinstance:
+              create:
+                parameters:
+                  baseImage: registry.sensetime.com/diamond/service-providers/clickhouse
+                  bootstrapImage: registry.sensetime.com/diamond/clickhouse-bootstrap:0.1.0
+                  version: 3.11.4-8u212-0.3.2-release-cqlsh
+                  # configMapName: clickhouse-configmap-v1
+                  # dataCapacity: "20Gi"
+                  # dataStorageClass: ceph-rbd
+                  imagePullPolicy: IfNotPresent
+                  hardAntiAffinity: false
+                  deletePVC: true
+                  autoPilot: false
+                  gcStdout: true
+                  autoUpdateSeedList: false
+                  maxPodUnavailable: 1
+                  runAsUser: 1000
+                  resources:
+                    requests:
+                      cpu: '1'
+                      memory: 2Gi
+                    limits:
+                      cpu: '1'
+                      memory: 2Gi
+                  topology:
+                    dc:
+                      - name: dc1
+                        nodesPerRacks: 2
+                        rack:
+                          - name: rack1
