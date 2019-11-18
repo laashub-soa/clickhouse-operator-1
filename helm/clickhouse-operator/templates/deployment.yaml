@@ -37,13 +37,13 @@ spec:
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
         command:
         - clickhouse-operator
-        readinessProbe:
-          exec:
-            command:
-              - /health
-          initialDelaySeconds: 4
-          periodSeconds: 10
-          failureThreshold: 1
+#        readinessProbe:
+#          exec:
+#            command:
+#              - /health
+#          initialDelaySeconds: 4
+#          periodSeconds: 10
+#          failureThreshold: 1
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         env:
