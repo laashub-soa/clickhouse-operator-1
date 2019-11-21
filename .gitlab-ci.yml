@@ -21,6 +21,7 @@ coverage:
   stage: UNIT-TEST
   image: registry.sensetime.com/wangjun3/golangci-lint
   script:
+    - mkdir -p /go/src/github.com/mackwong/
     - ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
     - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
     - make lint && make coverage
