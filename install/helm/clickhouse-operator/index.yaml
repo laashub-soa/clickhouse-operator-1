@@ -1,0 +1,20 @@
+apiVersion: v1
+entries:
+  clickhouse-operator:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2019-11-21T16:03:43.695687+08:00"
+    description: A Helm chart for Clickhouse Kubernetes operator
+    digest: 61e71f8cbc47b9f5debb9785b48622983575612325121afac5d6998a4ddc4cac
+    home: https://github.com/mackwong/clickhouse-operator
+    keywords:
+    - operator
+    - clickhouse
+    maintainers:
+    - email: wangjun3@sensetime.com
+      name: Wang Jun
+    name: clickhouse-operator
+    sources:
+    - https://github.com/mackwong/clickhouse-operator
+    version: 0.1.0
+generated: "2019-11-21T16:03:43.695687+08:00"

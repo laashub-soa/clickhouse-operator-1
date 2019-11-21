@@ -123,14 +123,6 @@ func createMarosFile() error {
 	return fmt.Errorf("can not find %s in %s", pod, content)
 }
 
-func addHostAlias() error {
-	content, err := ioutil.ReadFile("/etc/hosts")
-	if err != nil {
-		return err
-	}
-
-}
-
 func main() {
 	err := createMarosFile()
 	if err != nil {

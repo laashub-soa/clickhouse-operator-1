@@ -223,7 +223,7 @@ func (r *ReconcileClickHouseCluster) ScaleDownCluster(cc *clickhousev1.ClickHous
 	err := r.client.List(context.TODO(), &statefulSets, &client.ListOptions{
 		Namespace: cc.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			DefaultLabelKey: cc.Name,
+			ClusterLabelKey: cc.Name,
 		}),
 	})
 	if err != nil {
@@ -446,7 +446,7 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.St
 
 func (r *ReconcileClickHouseCluster) DeletePVCs(cc *clickhousev1.ClickHouseCluster) error {
 	selector := map[string]string{
-		DefaultLabelKey: cc.Name,
+		ClusterLabelKey: cc.Name,
 	}
 	lpvc, err := r.listPVC(cc.Namespace, selector)
 	if err != nil {
@@ -484,7 +484,6 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		c.Spec.InitImage = config.DefaultClickhouseInitImage
 		changed = true
 	}
-
 	if c.Spec.ShardsCount == 0 {
 		c.Spec.ShardsCount = config.DefaultShardCount
 		changed = true

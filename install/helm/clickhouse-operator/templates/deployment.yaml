@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "clickhouse-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "clickhouse-operator.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    operator: clickhouse
+    release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ template "clickhouse-operator.name" . }}
+  template:
+    metadata:
+      labels:
+        name: {{ template "clickhouse-operator.name" . }}
+        app: {{ template "clickhouse-operator.name" . }}
+        operator: clickhouse
+        release: {{ .Release.Name }}
+    spec:
+{{- if .Values.image.imagePullSecrets.enabled }}
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecrets.name }}
+{{- end }}
+{{- if .Values.rbacEnable }}
+      serviceAccountName: {{ template "clickhouse-operator.name" . }}
+{{- end }}
+      securityContext:
+        runAsUser: 1000
+      containers:
+      - name: {{ template "clickhouse-operator.name" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        command:
+        - clickhouse-k8s-operator
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        env:
+          - name: WATCH_NAMESPACE #如果设置为空，则监控所有namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: OPERATOR_NAME
+            value: "clickhouse-operator"
+{{- if .Values.debug }}
+          - name: LOG_LEVEL
+            value: Debug
+{{- end }}

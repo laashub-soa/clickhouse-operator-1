@@ -1,5 +1,6 @@
 default_clickhouse_image: "registry.sensetime.com/diamond/clickhouse-server:latest"
 default_clickhouse_init_image: "registry.sensetime.com/diamond/clickhouse-init:latest"
+default_clickhouse_exporter_image: "registry.sensetime.com/diamond/clickhouse-exporter:latest"
 default_config:
   - ./config/01-clickhouse-listen.xml
   - ./config/02-clickhouse-logger.xml
