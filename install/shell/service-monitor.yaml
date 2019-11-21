@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    component: clickhouse
+    prometheus: kube-prometheus
+    release: prometheus
+  name: prometheus-clickhouse
+  namespace: clickhouse-system
+spec:
+  endpoints:
+    - interval: 15s
+      port: exporter
+  podTargetLabels:
+    - instance_name
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      created-by: clickhouse-operator

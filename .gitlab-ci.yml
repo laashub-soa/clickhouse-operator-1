@@ -1,0 +1,28 @@
+stages:
+  - CODE_SCAN
+  - UNIT-TEST
+  - PROVISION
+  - AMBER
+
+variables:
+  TEST_NAMESPACE: "litmus"
+
+code_scan:
+  stage: CODE_SCAN
+  image: registry.sensetime.com/security/codescan:latest
+  variables:
+    GO111MODULE: "off"
+  script:
+    - /opt/code_scan/sonar_full_scan.sh
+  tags:
+    - k8s
+
+coverage:
+  stage: UNIT-TEST
+  image: registry.sensetime.com/wangjun3/golangci-lint
+  script:
+    - ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
+    - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
+    - make lint && make coverage
+  tags:
+    - k8s
