@@ -40,13 +40,6 @@ func (g *GeneratorTestSuite) TestGenerateAllMacrosJson() {
 	}
 }
 
-func (g *GeneratorTestSuite) TestGenerateCommonConfigMap() {
-	config := g.g.GenerateCommonConfigMap()
-	if config == nil {
-		g.T().Fatal("generate configmap error")
-	}
-}
-
 func TestRunSuite(t *testing.T) {
 	suite.Run(t, new(GeneratorTestSuite))
 }
