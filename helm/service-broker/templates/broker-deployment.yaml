@@ -1,0 +1,90 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: "{{ .Chart.Name }}"
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    diamond: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+        diamond: "true"
+    spec:
+      serviceAccount: {{ template "fullname" . }}-service
+      containers:
+      - name: servicebroker
+        image: {{ .Values.image }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        command:
+        - broker
+        args:
+        - --port
+        - "8443"
+        {{- if .Values.tls.cert}}
+        - --tlsCert
+        - "{{ .Values.tls.cert }}"
+        {{- end}}
+        {{- if .Values.tls.key}}
+        - --tlsKey
+        - "{{ .Values.tls.key }}"
+        {{- end}}
+        {{- if .Values.authenticate}}
+        - --authenticate-k8s-token
+        {{- end}}
+        - -v
+        - "5"
+        - -logtostderr
+        {{- if .Values.insecure }}
+        - --insecure
+        {{- else }}
+        - --tls-cert-file
+        - "/var/run/clickhouse-service-broker/servicebroker.crt"
+        - --tls-private-key-file
+        - "/var/run/clickhouse-service-broker/servicebroker.key"
+        {{- end}}
+        ports:
+        - containerPort: 8443
+        readinessProbe:
+          tcpSocket:
+            port: 8443
+          failureThreshold: 1
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        volumeMounts:
+        - mountPath: /var/run/clickhouse-service-broker
+          name: ssl
+          readOnly: true
+        - mountPath: /etc/broker/
+          name: config-volume
+          readOnly: true
+      volumes:
+      - name: ssl
+        secret:
+          defaultMode: 420
+          secretName: {{ template "fullname" . }}-cert
+          items:
+          - key: tls.crt
+            path: servicebroker.crt
+          - key: tls.key
+            path: servicebroker.key
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: clickhouse.yaml
+            path: clickhouse.yaml
+          name: "{{ .Chart.Name }}-config"
+        name: config-volume

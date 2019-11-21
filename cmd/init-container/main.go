@@ -20,19 +20,6 @@ const (
 	ZookeeperXML = "/etc/clickhouse-server/config.d/zookeeper.xml"
 )
 
-//var example = `<yandex>
-//       <zookeeper>
-//          <nodes>
-//             <host>localhost</host>
-//             <port>2181</port>
-//          </nodes>
-//          <session_timeout_ms>30000</session_timeout_ms>
-//          <operation_timeout_ms>10000</operation_timeout_ms>
-//          <root>/a/b/c/d/e/</root>
-//          <identity>user:password</identity>
-//       </zookeeper>
-//    </yandex>`
-
 type ZkConfig struct {
 	Zookeeper *v1.ZookeeperConfig `xml:"zookeeper"`
 }
@@ -121,14 +108,6 @@ func createMarosFile() error {
 		return nil
 	}
 	return fmt.Errorf("can not find %s in %s", pod, content)
-}
-
-func addHostAlias() error {
-	content, err := ioutil.ReadFile("/etc/hosts")
-	if err != nil {
-		return err
-	}
-
 }
 
 func main() {

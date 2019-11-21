@@ -1,11 +1,11 @@
 apiVersion: clickhouse.sensetime.com/v1
 kind: ClickHouseCluster
 metadata:
-  name: persistent-volume
+  name: pvd-delete
   namespace: test
 spec:
   deletePVC: true
   shardsCount: 2
   replicasCount: 1
   dataStorageClass: local-storage
-  dataCapacity: 1m
+  dataCapacity: 100m

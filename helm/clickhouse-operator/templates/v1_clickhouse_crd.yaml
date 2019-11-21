@@ -9,7 +9,7 @@ spec:
     listKind: ClickHouseClusterList
     plural: clickhouseclusters
     shortNames:
-    - chc
+      - chc
     singular: clickhousecluster
   scope: Namespaced
   validation:
@@ -71,8 +71,8 @@ spec:
                         format: int32
                         type: integer
                     required:
-                    - host
-                    - port
+                      - host
+                      - port
                     type: object
                   type: array
                 operation_timeout_ms:
@@ -94,6 +94,6 @@ spec:
       type: object
   version: v1
   versions:
-  - name: v1
-    served: true
-    storage: true
+    - name: v1
+      served: true
+      storage: true

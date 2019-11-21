@@ -1,0 +1,11 @@
+name: clickhouse-service-broker
+description: a chart for the clickhouse service broker
+version: 0.0.2
+maintainers:
+  - name: Wang Jun
+    email: wangjun3@sensetime.com
+  - name: Han Rou Gang
+    email: hanrougang@sensetime.com
+keywords:
+  - broker
+  - clickhouse

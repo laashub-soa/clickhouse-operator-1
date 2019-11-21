@@ -1,6 +1,7 @@
 .PHONY: lint test coverage build image push deploy-operator deploy-broker install release package clean uninstall all-clean
 
 IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-operator
+INIT-IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-init
 TAG ?= latest
 PULL ?= Always
 
@@ -14,6 +15,7 @@ build: clean
 	go build -o bin/broker -ldflags "-X main.Version=$(shell git describe)" cmd/manager/main.go
 
 image:
+	docker build --no-cache . -f Dockerfile.init -t "$(INIT-IMAGE):$(TAG)"
 	docker build --no-cache . -t "$(IMAGE):$(TAG)"
 
 coverage: test
@@ -33,6 +35,7 @@ all-clean: uninstall## Delete all binary and resources related to clickhouse ser
 
 push: image ## Pushes the image to docker registry
 	docker push "$(IMAGE):$(TAG)"
+	docker push "$(INIT-IMAGE):$(TAG)"
 
 deploy-operator: ## Deploys operator with helm
 	helm upgrade --install clickhouse-operator helm/clickhouse-operator --namespace clickhouse-system

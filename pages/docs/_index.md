@@ -1,11 +1,11 @@
 ---
-title: "ClickHouse"
+title: "Manual"
 weight: 2
 chapter: true
 description: "clickhouse"
-date: 2019-7-018T16:36:04+08:00
+date: 2019-8-022T9:30:00+08:00
 ---
 
-# ClickHouse Service
+# Manual
 
-The ClickHouse Service operator makes it easy to run ClickHouse on Kubernetes。
+Help you install our service and deploy a Clickhouse Cluster easily and fast.
