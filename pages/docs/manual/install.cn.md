@@ -157,7 +157,7 @@ clickhouse-service-broker-fcf65c77b-dq5rr   1/1     Running   0          30m
 $ kubectl get crd
 NAME                                             CREATED AT
 ...
-clickhouseclusters.db.orange.com                  2019-08-15T10:52:15Z
+clickhouseclusters.sensetime.com                  2019-08-15T10:52:15Z
 ...
 ```
 

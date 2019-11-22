@@ -35,7 +35,7 @@ spec:
 
 ```bash
 $ kubectl apply -f clickhousecluster.yaml -n clickhouse-namepace
-clickhousecluster.db.orange.com/clickhouse-demo created
+clickhousecluster.sensetime.com/clickhouse-demo created
 ```
 
 查看 pod 状态：

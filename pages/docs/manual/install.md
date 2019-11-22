@@ -85,7 +85,6 @@ NOTES:
 Check its status by running:
 kubectl --namespace clickhouse-system get pods -l "release=clickhouse-operator"
 
-Visit https://github.com/Orange-OpenSource/clickhouse-k8s-operator for instructions on hot to create & configure Clickhouse clusters using the operator.
 ```
 
 **Deploy Clickhouse Broker**:
@@ -158,7 +157,7 @@ Also, you could see some new created CustomResourceDefinitions (CRDs).
 $ kubectl get crd
 NAME                                             CREATED AT
 ...
-clickhouseclusters.db.orange.com                  2019-08-15T10:52:15Z
+clickhouseclusters.sensetime.com                  2019-08-15T10:52:15Z
 ...
 ```
 
