@@ -1,1 +1,0 @@
-Now that you have installed {{ .Chart.Name }} broker, you can create a resource.
