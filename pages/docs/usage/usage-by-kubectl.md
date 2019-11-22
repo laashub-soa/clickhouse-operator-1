@@ -35,7 +35,7 @@ Create clickhouse instance
 
 ```bash
 $ kc create -f clickhousecluster.yaml -n clickhouse-namepace
-clickhousecluster.db.orange.com/clickhouse-demo created
+clickhousecluster.sensetime.com/clickhouse-demo created
 ```
 
 Check Pod status：
