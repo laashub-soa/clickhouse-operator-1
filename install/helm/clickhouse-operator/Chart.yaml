@@ -1,0 +1,15 @@
+apiVersion: v1
+description: A Helm chart for Clickhouse Kubernetes operator
+name: clickhouse-operator
+home: https://github.com/mackwong/clickhouse-operator
+sources:
+  - https://github.com/mackwong/clickhouse-operator
+version: 0.1.0
+appVersion: 0.1.0
+icon: 
+maintainers:
+  - email: wangjun3@sensetime.com
+    name: Wang Jun
+keywords:
+- operator
+- clickhouse
