@@ -14,6 +14,8 @@ import (
 
 const (
 	// ClickHouse open ports
+	chDefaultExporterPortName      = "exporter"
+	chDefaultExporterPortNumber    = 9116
 	chDefaultHTTPPortName          = "http"
 	chDefaultHTTPPortNumber        = 8123
 	chDefaultClientPortName        = "client"
@@ -21,8 +23,9 @@ const (
 	chDefaultInterServerPortName   = "interserver"
 	chDefaultInterServerPortNumber = 9009
 
-	ClickHouseContainerName = "clickhouse"
-	InitContainerName       = "clickhouse-init"
+	ClickHouseContainerName         = "clickhouse"
+	ClickHouseExporterContainerName = "exporter"
+	InitContainerName               = "clickhouse-init"
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
@@ -56,14 +59,15 @@ func NewGenerator(rcc *ReconcileClickHouseCluster, cc *clickhousev1.ClickHouseCl
 
 func (g *Generator) labelsForStatefulSet(shardID int) map[string]string {
 	return map[string]string{
-		DefaultLabelKey: g.cc.Name,
-		"shard-id":      fmt.Sprintf("%d", shardID),
+		CreateByLabelKey: "clickhouse-operator",
+		ClusterLabelKey:  g.cc.Name,
+		ShardIDLabelKey:  fmt.Sprintf("%d", shardID),
 	}
 }
 
 func (g *Generator) labelsForCluster() map[string]string {
 	return map[string]string{
-		DefaultLabelKey: g.cc.Name,
+		ClusterLabelKey: g.cc.Name,
 	}
 }
 
@@ -221,6 +225,14 @@ func (g *Generator) generateService(shardID int, statefulset *appsv1.StatefulSet
 						IntVal: chDefaultClientPortNumber,
 					},
 				},
+				{
+					Name:     chDefaultExporterPortName,
+					Port:     chDefaultExporterPortNumber,
+					Protocol: "TCP",
+					TargetPort: intstr.IntOrString{
+						IntVal: chDefaultExporterPortNumber,
+					},
+				},
 			},
 			Selector:        g.labelsForStatefulSet(shardID),
 			ClusterIP:       "None",
@@ -310,6 +322,17 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 				},
 			},
 		},
+		{
+			Name:  ClickHouseExporterContainerName,
+			Image: g.rcc.defaultConfig.DefaultClickhouseExporterImage,
+			Ports: []corev1.ContainerPort{
+				{
+					Name:          chDefaultExporterPortName,
+					ContainerPort: chDefaultExporterPortNumber,
+					Protocol:      "TCP",
+				},
+			},
+		},
 	}
 
 	// Add all ConfigMap objects as Volume objects of type ConfigMap
@@ -325,6 +348,9 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 	for i := range statefulset.Spec.Template.Spec.Containers {
 		// Convenience wrapper
 		container := &statefulset.Spec.Template.Spec.Containers[i]
+		if container.Name != ClickHouseContainerName {
+			continue
+		}
 		// Append to each Container current VolumeMount's to VolumeMount's declared in template
 		container.VolumeMounts = append(
 			container.VolumeMounts,

@@ -10,16 +10,17 @@ import (
 	"reflect"
 )
 
-const configFile = "config.yaml"
+const configFile = "config/config.yaml"
 
 type DefaultConfig struct {
-	DefaultClickhouseImage     string                        `yaml:"default_clickhouse_image"`
-	DefaultClickhouseInitImage string                        `yaml:"default_clickhouse_init_image"`
-	DefaultShardCount          int32                         `yaml:"default_shard_count"`
-	DefaultReplicasCount       int32                         `yaml:"default_replicas_count"`
-	DefaultConfig              []string                      `yaml:"default_config"`
-	defaultXMLConfig           map[string]string             `yaml:"default_xml_config"`
-	DefaultZookeeper           *clickhousev1.ZookeeperConfig `yaml:"default_zookeeper"`
+	DefaultClickhouseImage         string                        `yaml:"default_clickhouse_image"`
+	DefaultClickhouseInitImage     string                        `yaml:"default_clickhouse_init_image"`
+	DefaultClickhouseExporterImage string                        `yaml:"default_clickhouse_exporter_image"`
+	DefaultShardCount              int32                         `yaml:"default_shard_count"`
+	DefaultReplicasCount           int32                         `yaml:"default_replicas_count"`
+	DefaultConfig                  []string                      `yaml:"default_config"`
+	defaultXMLConfig               map[string]string             `yaml:"default_xml_config"`
+	DefaultZookeeper               *clickhousev1.ZookeeperConfig `yaml:"default_zookeeper"`
 }
 
 func (d *DefaultConfig) GetDefaultXMLConfig() map[string]string {

@@ -1,8 +1,7 @@
 .PHONY: lint test coverage build image push deploy-operator deploy-broker install release package clean uninstall all-clean
 
 IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-operator
-INIT-IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-init
-TAG ?= latest
+TAG ?= $(shell git tag | head -n 1)
 PULL ?= Always
 
 lint: ## Run all the linters
