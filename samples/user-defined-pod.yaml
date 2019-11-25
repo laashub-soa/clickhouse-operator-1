@@ -1,0 +1,27 @@
+apiVersion: clickhouse.sensetime.com/v1
+kind: ClickHouseCluster
+metadata:
+  name: simple
+  namespace: test
+spec:
+  shardsCount: 1
+  replicasCount: 2
+  podSpec:
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: minikube
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 20
+    tolerations:
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 200
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 220

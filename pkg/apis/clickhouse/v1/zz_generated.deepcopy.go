@@ -5,6 +5,7 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -75,6 +76,11 @@ func (in *ClickHouseClusterSpec) DeepCopyInto(out *ClickHouseClusterSpec) {
 	if in.Zookeeper != nil {
 		in, out := &in.Zookeeper, &out.Zookeeper
 		*out = new(ZookeeperConfig)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.PodSpec != nil {
+		in, out := &in.PodSpec, &out.PodSpec
+		*out = new(corev1.PodSpec)
 		(*in).DeepCopyInto(*out)
 	}
 	return

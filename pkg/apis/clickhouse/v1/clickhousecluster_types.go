@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,7 +43,7 @@ type ClickHouseClusterSpec struct {
 	DataStorageClass string `json:"dataStorageClass,omitempty"`
 
 	//User defined pod spec
-	//PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
+	PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
 }
 
 // Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564
