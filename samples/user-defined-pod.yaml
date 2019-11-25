@@ -1,4 +1,4 @@
-apiVersion: clickhouse.sensetime.com/v1
+apiVersion: clickhouse.service.diamond.sensetime.com/v1
 kind: ClickHouseCluster
 metadata:
   name: user-defined-pod
