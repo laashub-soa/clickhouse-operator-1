@@ -1,0 +1,10 @@
+apiVersion: clickhouse.sensetime.com/v1
+kind: ClickHouseCluster
+metadata:
+  name: example
+  namespace: test
+spec:
+  # Add fields here
+  deletePVC: true
+  shardsCount: 1
+  replicasCount: 2

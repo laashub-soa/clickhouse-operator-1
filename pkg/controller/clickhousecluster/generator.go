@@ -249,11 +249,14 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			Labels: g.labelsForStatefulSet(shardID),
 		},
 	}
-	if g.cc.Spec.PodSpec != nil {
-		statefulset.Spec.Template.Spec = *g.cc.Spec.PodSpec
+	statefulset.Spec.Template.Spec = corev1.PodSpec{
+		Volumes:        []corev1.Volume{},
+		RestartPolicy:  "Always",
 	}
-	statefulset.Spec.Template.Spec.Volumes = []corev1.Volume{}
-	statefulset.Spec.Template.Spec.RestartPolicy = "Always"
+	if g.cc.Spec.Pod != nil {
+		statefulset.Spec.Template.Annotations = g.cc.Spec.Pod.Annotations
+		statefulset.Spec.Template.Spec.Tolerations = g.cc.Spec.Pod.Tolerations
+	}
 	statefulset.Spec.Template.Spec.InitContainers = []corev1.Container{
 		{
 			Name:  InitContainerName,

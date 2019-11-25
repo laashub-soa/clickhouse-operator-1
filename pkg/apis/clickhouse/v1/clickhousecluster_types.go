@@ -42,8 +42,7 @@ type ClickHouseClusterSpec struct {
 	//Define StorageClass for Persistent Volume Claims in the local storage.
 	DataStorageClass string `json:"dataStorageClass,omitempty"`
 
-	//User defined pod spec
-	PodSpec *corev1.PodSpec `json:"podSpec,omitempty"`
+	Pod *PodPolicy `json:"pod,omitempty"`
 }
 
 // Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564
@@ -62,6 +61,14 @@ type ShardStatus struct {
 	Phase string `json:"phase,omitempty"`
 }
 
+// PodPolicy defines the policy for pods owned by CassKop operator.
+type PodPolicy struct {
+	// Annotations specifies the annotations to attach to headless service the CassKop operator creates
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// Tolerations specifies the tolerations to attach to the pods the CassKop operator creates
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+}
+
 // ZookeeperConfig defines zookeeper
 // Refers to
 // https://clickhouse.yandex/docs/en/single/index.html?#server-settings_zookeeper
@@ -77,6 +84,10 @@ type ZookeeperConfig struct {
 type ZookeeperNode struct {
 	Host string `json:"host" yaml:"host" xml:"host"`
 	Port int32  `json:"port" yaml:"port" xml:"port"`
+}
+
+type CustomPodSpec struct {
+
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
