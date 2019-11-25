@@ -130,12 +130,17 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 							Format:      "",
 						},
 					},
+					"pod": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.PodPolicy"),
+						},
+					},
 				},
 				Required: []string{"CustomSettings"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ZookeeperConfig"},
+			"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.PodPolicy", "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ZookeeperConfig"},
 	}
 }
 
