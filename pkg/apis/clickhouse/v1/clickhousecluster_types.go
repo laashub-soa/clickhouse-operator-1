@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	AnnotationLastApplied string = "clickhouse.sensetime.com/last-applied-configuration"
+	AnnotationLastApplied string = "clickhouse.service.diamond.sensetime.com/last-applied-configuration"
 )
 
 // ClickHouseClusterSpec defines the desired state of ClickHouseCluster
