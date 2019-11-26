@@ -61,11 +61,11 @@ type ShardStatus struct {
 	Phase string `json:"phase,omitempty"`
 }
 
-// PodPolicy defines the policy for pods owned by CassKop operator.
+// PodPolicy defines the policy for pods owned by ClickHouse operator.
 type PodPolicy struct {
-	// Annotations specifies the annotations to attach to headless service the CassKop operator creates
+	// Annotations specifies the annotations to attach to headless service the ClickHouse operator creates
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// Tolerations specifies the tolerations to attach to the pods the CassKop operator creates
+	// Tolerations specifies the tolerations to attach to the pods the ClickHouse operator creates
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
@@ -87,7 +87,6 @@ type ZookeeperNode struct {
 }
 
 type CustomPodSpec struct {
-
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -49,18 +49,18 @@ spec:
               description: ClickHouse init  image
               type: string
             pod:
-              description: PodPolicy defines the policy for pods owned by CassKop
+              description: PodPolicy defines the policy for pods owned by ClickHouse
                 operator.
               properties:
                 annotations:
                   additionalProperties:
                     type: string
                   description: Annotations specifies the annotations to attach to
-                    headless service the CassKop operator creates
+                    headless service the ClickHouse operator creates
                   type: object
                 tolerations:
                   description: Tolerations specifies the tolerations to attach to
-                    the pods the CassKop operator creates
+                    the pods the ClickHouse operator creates
                   items:
                     description: The pod this Toleration is attached to tolerates
                       any taint that matches the triple <key,value,effect> using the

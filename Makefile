@@ -39,6 +39,10 @@ push: image ## Pushes the image to docker registry
 deploy-operator: ## Deploys operator with helm
 	helm upgrade --install clickhouse-operator helm/clickhouse-operator --namespace clickhouse-system
 
+tar: ## Deploys operator with helm
+	rm vendor.tgz
+	docker run --rm -v `pwd`:/clickhouse -w /clickhouse busybox tar cfz vendor.tgz vendor
+
 generate: ## Deploys operator with helm
 	 operator-sdk generate k8s
 	 operator-sdk generate openapi
