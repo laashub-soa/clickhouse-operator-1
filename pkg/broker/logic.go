@@ -213,7 +213,7 @@ loop:
 	}
 
 	meta := v1.ObjectMeta{
-		Name:      instance.Params["cluster_name"].(string),
+		Name:      instance.Name,
 		Namespace: namespace,
 		Labels: map[string]string{
 			InstanceID: instance.ID, //oss defined
@@ -265,13 +265,13 @@ func (b *BusinessLogic) Provision(request *osb.ProvisionRequest, c *broker.Reque
 	b.Lock()
 	defer b.Unlock()
 
-	if err := b.validateParameters(request.Parameters); err != nil {
-		errMsg := err.Error()
-		return nil, osb.HTTPStatusCodeError{
-			StatusCode:   http.StatusBadRequest,
-			ErrorMessage: &errMsg,
-		}
-	}
+	//if err := b.validateParameters(request.Parameters); err != nil {
+	//	errMsg := err.Error()
+	//	return nil, osb.HTTPStatusCodeError{
+	//		StatusCode:   http.StatusBadRequest,
+	//		ErrorMessage: &errMsg,
+	//	}
+	//}
 
 	if request.ServiceID == "" || request.PlanID == "" ||
 		!(b.validateServiceID(request.ServiceID) && b.validatePlanID(request.ServiceID, request.PlanID)) {
@@ -472,12 +472,12 @@ func (b *BusinessLogic) ValidateBrokerAPIVersion(version string) error {
 	return nil
 }
 
-func (b *BusinessLogic) validateParameters(parameters map[string]interface{}) error {
-	if _, ok := parameters["cluster_name"]; !ok {
-		return fmt.Errorf("have not assign cluster")
-	}
-	return nil
-}
+//func (b *BusinessLogic) validateParameters(parameters map[string]interface{}) error {
+//	if _, ok := parameters["cluster_name"]; !ok {
+//		return fmt.Errorf("have not assign cluster")
+//	}
+//	return nil
+//}
 
 func (b *BusinessLogic) validateServiceID(serviceID string) bool {
 	for _, s := range *b.services {

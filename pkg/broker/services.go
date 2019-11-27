@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
