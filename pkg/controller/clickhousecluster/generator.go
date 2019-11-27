@@ -441,7 +441,6 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 
 // newVolumeForConfigMap returns corev1.Volume object with defined name
 func newVolumeForConfigMap(name string) corev1.Volume {
-	var defaultMode int32 = 420
 	return corev1.Volume{
 		Name: name,
 		VolumeSource: corev1.VolumeSource{
@@ -449,7 +448,7 @@ func newVolumeForConfigMap(name string) corev1.Volume {
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: name,
 				},
-				DefaultMode: &defaultMode,
+				DefaultMode: &[]int32{420}[0],
 			},
 		},
 	}
