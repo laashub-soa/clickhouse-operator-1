@@ -250,8 +250,8 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 		},
 	}
 	statefulset.Spec.Template.Spec = corev1.PodSpec{
-		Volumes:        []corev1.Volume{},
-		RestartPolicy:  "Always",
+		Volumes:       []corev1.Volume{},
+		RestartPolicy: "Always",
 	}
 	if g.cc.Spec.Pod != nil {
 		statefulset.Spec.Template.Annotations = g.cc.Spec.Pod.Annotations

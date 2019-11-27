@@ -19,11 +19,21 @@ code_scan:
 
 coverage:
   stage: UNIT-TEST
+  services:
+    - name: registry.sensetime.com/diamond/kind:v1.14.4
+      alias: minikube
   image: registry.sensetime.com/wangjun3/golangci-lint
-  script:
-    - mkdir -p /go/src/github.com/mackwong/
+  before_script:
+    - mkdir -p /go/src/github.com/mackwong/ ~/.kube/
     - ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
     - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
+  script:
+    - >
+      until curl -s --fail http://localhost:10080/kubernetes-ready; do
+        sleep 20;
+      done
+    - wget -O ~/.kube/config http://localhost:10080/config
+    - kubectl create -f ./install/shell/clickhouse-operator.yaml --namespace clickhouse-system
     - make lint && make coverage
   tags:
     - k8s
