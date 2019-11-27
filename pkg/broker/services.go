@@ -1,11 +1,9 @@
 package broker
 
 import (
-	"fmt"
 	"io/ioutil"
 	"reflect"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/mackwong/clickhouse-operator/pkg/apis"
 	"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -17,11 +15,6 @@ import (
 	clientrest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-const (
-	defaultCqlUser     = "clickhouse"
-	defaultCqlPassword = "clickhouse"
 )
 
 func ReadFromConfigMap(configPath string) (*[]osb.Service, error) {
@@ -124,41 +117,4 @@ loop:
 
 func (p *ParametersSpec) ToClickHouseClusterSpec() v1.ClickHouseClusterSpec {
 	return v1.ClickHouseClusterSpec(*p)
-}
-
-//type CqlClient struct {
-//	User string
-//	Password string
-//	Host []string
-//	session *gocql.Session
-//}
-
-type CqlClient struct {
-}
-
-func newCqlClient(user, password string, host []string) (*CqlClient, error) {
-
-	return nil, nil
-}
-
-func (c *CqlClient) CreateSuperUser(user, password string) (string, string, error) {
-	if user == "" {
-		user = RandStringRunes(5)
-	}
-	if password == "" {
-		password = RandStringRunes(20)
-	}
-	q := fmt.Sprintf("CREATE USER IF NOT EXISTS %s WITH PASSWORD '%s' SUPERUSER", user, password)
-	glog.V(5).Info(q)
-	return user, password, c.exec(q)
-}
-
-func (c *CqlClient) DeleteUser(user string) error {
-	q := fmt.Sprintf("DROP USER IF EXISTS %s", user)
-	glog.V(5).Info(q)
-	return c.exec(q)
-}
-
-func (c *CqlClient) exec(query string) error {
-	return nil
 }
