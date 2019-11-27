@@ -1,6 +1,8 @@
 .PHONY: lint test coverage build image push deploy-operator deploy-broker install release package clean uninstall all-clean
 
 IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-operator
+INIT_IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-init
+BROKER_IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-broker
 TAG ?= $(shell git tag | head -n 1)
 PULL ?= Always
 
@@ -14,8 +16,11 @@ build: clean
 	go build -o bin/broker -ldflags "-X main.Version=$(shell git describe)" cmd/manager/main.go
 
 image:
-	docker build --no-cache . -f Dockerfile.init -t "$(INIT-IMAGE):$(TAG)"
-	docker build --no-cache . -t "$(IMAGE):$(TAG)"
+	docker build --no-cache . -f cmd/init-container/Dockerfile -t "$(INIT-IMAGE):$(TAG)"
+	docker build --no-cache . -f cmd/manager/Dockerfile -t "$(IMAGE):$(TAG)"
+
+broker:
+	docker build --no-cache . -f cmd/clickhouse-broker/Dockerfile -t "$(BROKER_IMAGE):$(TAG)"
 
 coverage: test
 	go tool cover -html=coverage.txt -o coverage.html
