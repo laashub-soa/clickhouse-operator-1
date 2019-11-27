@@ -92,7 +92,7 @@ func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) (*v1.Cli
 	clickhouse := &v1.ClickHouseCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClickHouseCluster",
-			APIVersion: "service.diamond/sensetime.com/v1",
+			APIVersion: "service.diamond.sensetime.com/v1",
 		},
 		ObjectMeta: meta,
 		Spec:       spec.ToClickHouseClusterSpec(),

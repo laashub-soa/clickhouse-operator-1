@@ -19,7 +19,7 @@ import (
 
 var (
 	instanceID = "12345678-9012-2345-6789-ac9694d96d5b"
-	planID     = "2db0b31d-6912-4d24-8704-cfdf9b98af81"
+	planID     = "ebd00cf7-3d2a-465f-b10c-b9b90a01badf"
 	serviceID  = "137a3ded-59ab-4ece-bbda-9cfff850a1f3"
 )
 
@@ -81,7 +81,8 @@ func (s *LogicTestSuite) TestC_Provision() {
 			"cluster_name": "test",
 		},
 		Context: map[string]interface{}{
-			"namespace": s.namespace,
+			"instance_name": "mock",
+			"namespace":     s.namespace,
 		},
 	}
 
@@ -94,22 +95,21 @@ func (s *LogicTestSuite) TestC_Provision() {
 	})
 	assert.Condition(s.T(), func() (success bool) {
 		return err == nil || strings.Contains(err.Error(), "already exists")
-	})
+	}, err)
 }
 
 func (s *LogicTestSuite) TestD_Bind() {
-	request := &osb.ProvisionRequest{
+	request := &osb.BindRequest{
 		InstanceID: instanceID,
 		PlanID:     planID,
 		ServiceID:  serviceID,
-		Parameters: map[string]interface{}{
-			"cluster_name": "test",
-		},
+		Parameters: map[string]interface{}{},
 		Context: map[string]interface{}{
-			"namespace": s.namespace,
+			"instance_name": "mock",
+			"namespace":     s.namespace,
 		},
 	}
-	_, err := s.logic.Provision(request, &broker.RequestContext{
+	_, err := s.logic.Bind(request, &broker.RequestContext{
 		Request: &http.Request{
 			Header: map[string][]string{
 				"X-Broker-Api-Version": {"2.14"},
@@ -118,7 +118,7 @@ func (s *LogicTestSuite) TestD_Bind() {
 	})
 	assert.Condition(s.T(), func() (success bool) {
 		return err == nil || strings.Contains(err.Error(), "already exists")
-	})
+	}, err)
 }
 
 func (s *LogicTestSuite) TestE_UnBind() {
@@ -136,7 +136,7 @@ func (s *LogicTestSuite) TestE_UnBind() {
 		}})
 	assert.Condition(s.T(), func() (success bool) {
 		return err == nil || (err != nil && strings.Contains(err.Error(), "failed to resolve any of the provided hostnames"))
-	})
+	}, err)
 }
 
 func (s *LogicTestSuite) TestF_Deprovision() {

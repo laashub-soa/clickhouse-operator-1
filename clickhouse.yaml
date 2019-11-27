@@ -19,10 +19,8 @@
         serviceinstance:
           create:
             parameters:
-              baseImage: registry.sensetime.com/diamond/service-providers/clickhouse
-              bootstrapImage: registry.sensetime.com/diamond/clickhouse-bootstrap:0.1.0
               deletePVC: true
-              shardCount: 1
+              shardsCount: 1
               replicasCount: 2
               resources:
                 requests:
@@ -45,7 +43,7 @@
               dataCapacity: "20Gi"
               dataStorageClass: ceph-rbd
               deletePVC: true
-              shardCount: 2
+              shardsCount: 2
               replicasCount: 2
               resources:
                 requests:

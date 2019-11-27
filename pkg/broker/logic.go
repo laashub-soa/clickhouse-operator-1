@@ -27,10 +27,12 @@ import (
 )
 
 const (
-	OperateTimeOut = 30 * time.Second
-	InstanceID     = "instance_name"
-	ServiceID      = "service_id"
-	PlanID         = "plan_id"
+	OperateTimeOut    = 30 * time.Second
+	InstanceID        = "instance_name"
+	InstanceName      = "instance_name"
+	InstanceNamespace = "namespace"
+	ServiceID         = "service_id"
+	PlanID            = "plan_id"
 )
 
 var (
@@ -192,7 +194,7 @@ func (b *BusinessLogic) GetCatalog(request *broker.RequestContext) (*broker.Cata
 	return response, nil
 }
 
-func (b *BusinessLogic) doProvision(instance *Instance, namespace string) (err error) {
+func (b *BusinessLogic) doProvision(instance *Instance) (err error) {
 	planSpec := ParametersSpec{}
 	err = mapstructure.Decode(instance.Params, &planSpec)
 	if err != nil {
@@ -214,7 +216,7 @@ loop:
 
 	meta := v1.ObjectMeta{
 		Name:      instance.Name,
-		Namespace: namespace,
+		Namespace: instance.Namespace,
 		Labels: map[string]string{
 			InstanceID: instance.ID, //oss defined
 			ServiceID:  instance.ServiceID,
@@ -265,15 +267,8 @@ func (b *BusinessLogic) Provision(request *osb.ProvisionRequest, c *broker.Reque
 	b.Lock()
 	defer b.Unlock()
 
-	//if err := b.validateParameters(request.Parameters); err != nil {
-	//	errMsg := err.Error()
-	//	return nil, osb.HTTPStatusCodeError{
-	//		StatusCode:   http.StatusBadRequest,
-	//		ErrorMessage: &errMsg,
-	//	}
-	//}
-
 	if request.ServiceID == "" || request.PlanID == "" ||
+		request.Context[InstanceName] == nil || request.Context[InstanceNamespace] == nil ||
 		!(b.validateServiceID(request.ServiceID) && b.validatePlanID(request.ServiceID, request.PlanID)) {
 		errMsg := fmt.Sprintf("The request is malformed or missing mandatory data!")
 		return nil, osb.HTTPStatusCodeError{
@@ -286,6 +281,8 @@ func (b *BusinessLogic) Provision(request *osb.ProvisionRequest, c *broker.Reque
 
 	instance := &Instance{
 		ID:        request.InstanceID,
+		Name:      request.Context[InstanceName].(string),
+		Namespace: request.Context[InstanceNamespace].(string),
 		ServiceID: request.ServiceID,
 		PlanID:    request.PlanID,
 		Params:    request.Parameters,
@@ -304,8 +301,7 @@ func (b *BusinessLogic) Provision(request *osb.ProvisionRequest, c *broker.Reque
 		}
 	}
 
-	namespace := request.Context["namespace"].(string)
-	err := b.doProvision(instance, namespace)
+	err := b.doProvision(instance)
 	if err != nil {
 		description := err.Error()
 		return nil, osb.HTTPStatusCodeError{
@@ -425,7 +421,7 @@ func (b *BusinessLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Req
 	}
 	instance.Params = request.Parameters
 
-	namespace, ok := request.Context["namespace"].(string)
+	namespace, ok := request.Context[InstanceNamespace].(string)
 	if ok && namespace != instance.Namespace {
 		errMsg := "can not change namespace"
 		return nil, osb.HTTPStatusCodeError{
@@ -434,7 +430,7 @@ func (b *BusinessLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Req
 		}
 	}
 
-	err := b.doProvision(instance, namespace)
+	err := b.doProvision(instance)
 	if err != nil {
 		description := err.Error()
 		return nil, osb.HTTPStatusCodeError{
