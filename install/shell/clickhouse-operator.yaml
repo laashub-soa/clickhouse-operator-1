@@ -122,6 +122,35 @@ spec:
               description: Replicas count
               format: int32
               type: integer
+            resources:
+              description: Pod defines the policy for pods owned by cassandra operator.
+                This field cannot be updated once the CR is created.
+              properties:
+                limits:
+                  description: CPUAndMem defines how many cpu and ram the container
+                    will request/limit
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                  required:
+                    - cpu
+                    - memory
+                  type: object
+                requests:
+                  description: CPUAndMem defines how many cpu and ram the container
+                    will request/limit
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                  required:
+                    - cpu
+                    - memory
+                  type: object
+              type: object
             shardsCount:
               description: Shards count
               format: int32
