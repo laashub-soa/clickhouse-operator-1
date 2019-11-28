@@ -5,8 +5,11 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"reflect"
 
+	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"strings"
 )
@@ -100,4 +103,16 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 	}
 
 	return true
+}
+
+func generateResourceList(cpuMem clickhousev1.CPUAndMem) v1.ResourceList {
+	cpu, memory := cpuMem.CPU, cpuMem.Memory
+	resources := v1.ResourceList{}
+	if cpu != "" {
+		resources[v1.ResourceCPU], _ = resource.ParseQuantity(cpu)
+	}
+	if memory != "" {
+		resources[v1.ResourceMemory], _ = resource.ParseQuantity(memory)
+	}
+	return resources
 }
