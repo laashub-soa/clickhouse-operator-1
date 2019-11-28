@@ -324,6 +324,10 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					},
 				},
 			},
+			Resources: corev1.ResourceRequirements{
+				Requests: generateResourceList(g.cc.Spec.Resources.Requests),
+				Limits:   generateResourceList(g.cc.Spec.Resources.Limits),
+			},
 		},
 		{
 			Name:  ClickHouseExporterContainerName,
@@ -334,6 +338,16 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					ContainerPort: chDefaultExporterPortNumber,
 					Protocol:      "TCP",
 				},
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: generateResourceList(clickhousev1.CPUAndMem{
+					CPU:    "0.1",
+					Memory: "100mi",
+				}),
+				Limits: generateResourceList(clickhousev1.CPUAndMem{
+					CPU:    "0.1",
+					Memory: "100mi",
+				}),
 			},
 		},
 	}

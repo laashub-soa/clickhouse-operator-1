@@ -43,6 +43,10 @@ type ClickHouseClusterSpec struct {
 	DataStorageClass string `json:"dataStorageClass,omitempty"`
 
 	Pod *PodPolicy `json:"pod,omitempty"`
+
+	// Pod defines the policy for pods owned by cassandra operator.
+	// This field cannot be updated once the CR is created.
+	Resources ClickHouseResources `json:"resources,omitempty"`
 }
 
 // Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564
@@ -51,6 +55,18 @@ type ClickHouseClusterSpec struct {
 type ClickHouseClusterStatus struct {
 	Phase       string                  `json:"phase,omitempty"`
 	ShardStatus map[string]*ShardStatus `json:"shardStatus,omitempty"`
+}
+
+// ClickHouseResources sets the limits and requests for a container
+type ClickHouseResources struct {
+	Requests CPUAndMem `json:"requests,omitempty"`
+	Limits   CPUAndMem `json:"limits,omitempty"`
+}
+
+// CPUAndMem defines how many cpu and ram the container will request/limit
+type CPUAndMem struct {
+	CPU    string `json:"cpu"`
+	Memory string `json:"memory"`
 }
 
 //ShardStatus defines states of Clickhouse for 1 shard (1 statefulset)

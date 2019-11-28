@@ -352,6 +352,13 @@ func (r *ReconcileClickHouseCluster) CheckNonAllowedChanges(instance *clickhouse
 		instance.Spec.DataStorageClass = oldCRD.Spec.DataStorageClass
 		return true
 	}
+	if !reflect.DeepEqual(instance.Spec.Resources, oldCRD.Spec.Resources) {
+		logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
+			Warningf("The Operator has refused the change on Resources from [%v] to NewValue[%v]",
+				oldCRD.Spec.Resources, instance.Spec.Resources)
+		instance.Spec.DataStorageClass = oldCRD.Spec.DataStorageClass
+		return true
+	}
 	return false
 }
 
@@ -495,9 +502,15 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 	if c.Spec.Zookeeper == nil {
 		config.DefaultZookeeper.Root = fmt.Sprintf("%s/%s/%s", config.DefaultZookeeper.Root, c.Namespace, c.Name)
 		c.Spec.Zookeeper = config.DefaultZookeeper
+		changed = true
 	}
 	if c.Spec.CustomSettings == "" {
 		c.Spec.CustomSettings = "<yandex></yandex>"
+		changed = true
+	}
+	if c.Spec.Resources.Limits == (clickhousev1.CPUAndMem{}) {
+		c.Spec.Resources.Limits = c.Spec.Resources.Requests
+		changed = true
 	}
 	return changed
 }

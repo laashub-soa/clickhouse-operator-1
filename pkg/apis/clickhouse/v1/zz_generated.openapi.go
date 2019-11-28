@@ -135,12 +135,18 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 							Ref: ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.PodPolicy"),
 						},
 					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Pod defines the policy for pods owned by cassandra operator. This field cannot be updated once the CR is created.",
+							Ref:         ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ClickHouseResources"),
+						},
+					},
 				},
 				Required: []string{"CustomSettings"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.PodPolicy", "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ZookeeperConfig"},
+			"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ClickHouseResources", "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.PodPolicy", "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ZookeeperConfig"},
 	}
 }
 
