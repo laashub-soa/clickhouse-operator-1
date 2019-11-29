@@ -9,7 +9,7 @@ Here is an example of Clickhouse cluster：
 
 ```yaml
 #clickhousecluster.yaml
-apiVersion: clickhouse.sensetime.com/v1
+apiVersion: clickhouse.service.diamond.sensetime.com/v1
 kind: ClickHouseCluster
 metadata:
   name: simple

@@ -9,7 +9,7 @@ date: 2019-7-018T16:36:04+08:00
 
 ```yaml
 #clickhousecluster.yaml
-apiVersion: clickhouse.sensetime.com/v1
+apiVersion: clickhouse.service.diamond.sensetime.com/v1
 kind: ClickHouseCluster
 metadata:
   name: simple

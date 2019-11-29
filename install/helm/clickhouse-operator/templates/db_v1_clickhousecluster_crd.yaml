@@ -1,14 +1,14 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: clickhouseclusters.clickhouse.sensetime.com
+  name: clickhouseclusters.clickhouse.service.diamond.sensetime.com
   labels:
     app: {{ template "clickhouse-operator.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 spec:
-  group: clickhouse.sensetime.com
+  group: clickhouse.service.diamond.sensetime.com
   names:
     kind: ClickHouseCluster
     listKind: ClickHouseClusterList
@@ -53,10 +53,91 @@ spec:
             initImage:
               description: ClickHouse init  image
               type: string
+            pod:
+              description: PodPolicy defines the policy for pods owned by ClickHouse
+                operator.
+              properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  description: Annotations specifies the annotations to attach to
+                    headless service the ClickHouse operator creates
+                  type: object
+                tolerations:
+                  description: Tolerations specifies the tolerations to attach to
+                    the pods the ClickHouse operator creates
+                  items:
+                    description: The pod this Toleration is attached to tolerates
+                      any taint that matches the triple <key,value,effect> using the
+                      matching operator <operator>.
+                    properties:
+                      effect:
+                        description: Effect indicates the taint effect to match. Empty
+                          means match all taint effects. When specified, allowed values
+                          are NoSchedule, PreferNoSchedule and NoExecute.
+                        type: string
+                      key:
+                        description: Key is the taint key that the toleration applies
+                          to. Empty means match all taint keys. If the key is empty,
+                          operator must be Exists; this combination means to match
+                          all values and all keys.
+                        type: string
+                      operator:
+                        description: Operator represents a key's relationship to the
+                          value. Valid operators are Exists and Equal. Defaults to
+                          Equal. Exists is equivalent to wildcard for value, so that
+                          a pod can tolerate all taints of a particular category.
+                        type: string
+                      tolerationSeconds:
+                        description: TolerationSeconds represents the period of time
+                          the toleration (which must be of effect NoExecute, otherwise
+                          this field is ignored) tolerates the taint. By default,
+                          it is not set, which means tolerate the taint forever (do
+                          not evict). Zero and negative values will be treated as
+                          0 (evict immediately) by the system.
+                        format: int64
+                        type: integer
+                      value:
+                        description: Value is the taint value the toleration matches
+                          to. If the operator is Exists, the value should be empty,
+                          otherwise just a regular string.
+                        type: string
+                    type: object
+                  type: array
+              type: object
             replicasCount:
               description: Replicas count
               format: int32
               type: integer
+            resources:
+              description: Pod defines the policy for pods owned by cassandra operator.
+                This field cannot be updated once the CR is created.
+              properties:
+                limits:
+                  description: CPUAndMem defines how many cpu and ram the container
+                    will request/limit
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                  required:
+                    - cpu
+                    - memory
+                  type: object
+                requests:
+                  description: CPUAndMem defines how many cpu and ram the container
+                    will request/limit
+                  properties:
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                  required:
+                    - cpu
+                    - memory
+                  type: object
+              type: object
             shardsCount:
               description: Shards count
               format: int32

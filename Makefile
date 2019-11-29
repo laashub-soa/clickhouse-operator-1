@@ -3,7 +3,7 @@
 IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-operator
 INIT_IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-init
 BROKER_IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-broker
-TAG ?= $(shell git tag | head -n 1)
+TAG ?= $(shell git tag | tail -n 1)
 PULL ?= Always
 
 lint: ## Run all the linters
@@ -16,7 +16,7 @@ build: clean
 	go build -o bin/broker -ldflags "-X main.Version=$(shell git describe)" cmd/manager/main.go
 
 image:
-	docker build --no-cache . -f cmd/init-container/Dockerfile -t "$(INIT-IMAGE):$(TAG)"
+	docker build --no-cache . -f cmd/init-container/Dockerfile -t "$(INIT_IMAGE):$(TAG)"
 	docker build --no-cache . -f cmd/manager/Dockerfile -t "$(IMAGE):$(TAG)"
 
 broker:
@@ -35,7 +35,7 @@ uninstall: ## Uninstall operator and broker
 all-clean: uninstall## Delete all binary and resources related to clickhouse service
 	# WARNING!!! This will also delete your clusters which use our CRD
 	rm -rf bin/*
-	kubectl delete crd clickhouse.sensetime.com
+	kubectl delete crd clickhouse.service.diamond.sensetime.com
 
 push: image ## Pushes the image to docker registry
 	docker push "$(IMAGE):$(TAG)"

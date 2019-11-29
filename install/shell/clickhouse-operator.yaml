@@ -215,7 +215,7 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - clickhouse.sensetime.com
+  - clickhouse.service.diamond.sensetime.com
   resources:
   - "*"
   verbs:
