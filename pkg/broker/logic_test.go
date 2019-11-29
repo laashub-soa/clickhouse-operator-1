@@ -20,7 +20,7 @@ import (
 var (
 	instanceID = "12345678-9012-2345-6789-ac9694d96d5b"
 	planID     = "ebd00cf7-3d2a-465f-b10c-b9b90a01badf"
-	serviceID  = "137a3ded-59ab-4ece-bbda-9cfff850a1f3"
+	serviceID  = "558888d1-f00a-3176-01e4-05cd2d68eb18"
 )
 
 type LogicTestSuite struct {
