@@ -110,7 +110,7 @@ spec:
               format: int32
               type: integer
             resources:
-              description: Pod defines the policy for pods owned by cassandra operator.
+              description: Pod defines the policy for pods owned by clickhouse operator.
                 This field cannot be updated once the CR is created.
               properties:
                 limits:

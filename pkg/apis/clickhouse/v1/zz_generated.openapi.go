@@ -137,7 +137,7 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 					},
 					"resources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Pod defines the policy for pods owned by cassandra operator. This field cannot be updated once the CR is created.",
+							Description: "Pod defines the policy for pods owned by clickhouse operator. This field cannot be updated once the CR is created.",
 							Ref:         ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ClickHouseResources"),
 						},
 					},

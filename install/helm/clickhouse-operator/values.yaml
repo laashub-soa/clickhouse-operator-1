@@ -2,7 +2,7 @@
 ##
 image:
   repository: registry.sensetime.com/diamond/service-providers/clickhouse-operator
-  tag: v0.2.0
+  tag: v0.211.0
   pullPolicy: Always
   imagePullSecrets:
     enabled: false
@@ -28,6 +28,9 @@ rbacEnable: true
 
 ## if true deploy service for metrics access
 metricService: false
+
+## If true, create & deploy the zookeeper
+zookeeperEnable: true
 
 debug:
   enabled: false
