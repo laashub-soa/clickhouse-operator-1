@@ -118,3 +118,22 @@ loop:
 func (p *ParametersSpec) ToClickHouseClusterSpec() v1.ClickHouseClusterSpec {
 	return v1.ClickHouseClusterSpec(*p)
 }
+
+type BindingInfo struct {
+	User     string
+	Password string
+	Host     []string
+}
+
+type Instance struct {
+	ID        string
+	Name      string
+	Namespace string
+	ServiceID string
+	PlanID    string
+	Params    map[string]interface{}
+}
+
+func (i *Instance) Match(other *Instance) bool {
+	return reflect.DeepEqual(i, other)
+}

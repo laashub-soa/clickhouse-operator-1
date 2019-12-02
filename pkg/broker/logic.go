@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Masterminds/semver"
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	v1alpha1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,8 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"reflect"
 
 	"github.com/golang/glog"
 	"github.com/mitchellh/mapstructure"
@@ -40,9 +37,9 @@ var (
 	versionConstraint   = ">= " + minSupportedVersion
 )
 
-// NewBusinessLogic represents the creation of a BusinessLogic
-func NewBusinessLogic(KubeConfig string, o Options) (*BusinessLogic, error) {
-	glog.Infof("NewBusinessLogic called.\n")
+// NewCHCBrokerLogic represents the creation of a CHCBrokerLogic
+func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
+	glog.Infof("NewCHCBrokerLogic called.\n")
 
 	services, err := ReadFromConfigMap(o.ServiceConfigPath)
 	if err != nil {
@@ -60,7 +57,7 @@ func NewBusinessLogic(KubeConfig string, o Options) (*BusinessLogic, error) {
 		glog.Fatalf("can not get a client, err: %s", err)
 		return nil, err
 	}
-	return &BusinessLogic{
+	return &CHCBrokerLogic{
 		async:     o.Async,
 		services:  services,
 		cli:       cli,
@@ -69,8 +66,8 @@ func NewBusinessLogic(KubeConfig string, o Options) (*BusinessLogic, error) {
 	}, nil
 }
 
-// BusinessLogic is where stores the metadata and client of a service
-type BusinessLogic struct {
+// CHCBrokerLogic is where stores the metadata and client of a service
+type CHCBrokerLogic struct {
 	// Indicates if the broker should handle the requests asynchronously.
 	broker.Interface
 	async bool
@@ -82,9 +79,9 @@ type BusinessLogic struct {
 	bindings  map[string]*BindingInfo
 }
 
-var _ broker.Interface = &BusinessLogic{}
+var _ broker.Interface = &CHCBrokerLogic{}
 
-func (b *BusinessLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
+func (b *CHCBrokerLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
 	instanceID := item.Spec.ExternalID
 	serviceID := item.Spec.ClusterServiceClassName
 	planID := item.Spec.ClusterServicePlanName
@@ -115,7 +112,7 @@ func (b *BusinessLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
 	return
 }
 
-func (b *BusinessLogic) recoveryBinding(item *v1beta1.ServiceBinding) {
+func (b *CHCBrokerLogic) recoveryBinding(item *v1beta1.ServiceBinding) {
 	secretName := item.Spec.SecretName
 	namespace := item.Namespace
 	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
@@ -140,7 +137,7 @@ func (b *BusinessLogic) recoveryBinding(item *v1beta1.ServiceBinding) {
 }
 
 // Recovery instances data from restart
-func (b *BusinessLogic) Recovery() error {
+func (b *CHCBrokerLogic) Recovery() error {
 	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
 	defer cancel()
 
@@ -183,7 +180,7 @@ func (b *BusinessLogic) Recovery() error {
 }
 
 // GetCatalog is to list all ServiceClasses and ServicePlans this broker supports
-func (b *BusinessLogic) GetCatalog(request *broker.RequestContext) (*broker.CatalogResponse, error) {
+func (b *CHCBrokerLogic) GetCatalog(request *broker.RequestContext) (*broker.CatalogResponse, error) {
 	glog.V(5).Infof("get request from GetCatalog: %s\n", toJson(request))
 	response := &broker.CatalogResponse{}
 	osbResponse := &osb.CatalogResponse{
@@ -194,7 +191,7 @@ func (b *BusinessLogic) GetCatalog(request *broker.RequestContext) (*broker.Cata
 	return response, nil
 }
 
-func (b *BusinessLogic) doProvision(instance *Instance) (err error) {
+func (b *CHCBrokerLogic) doProvision(instance *Instance) (err error) {
 	planSpec := ParametersSpec{}
 	err = mapstructure.Decode(instance.Params, &planSpec)
 	if err != nil {
@@ -241,7 +238,7 @@ loop:
 	return err
 }
 
-func (b *BusinessLogic) doDeprovision(instance *Instance) (err error) {
+func (b *CHCBrokerLogic) doDeprovision(instance *Instance) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
 	defer cancel()
 	clusterList := v1alpha1.ClickHouseClusterList{}
@@ -262,7 +259,7 @@ func (b *BusinessLogic) doDeprovision(instance *Instance) (err error) {
 }
 
 // Provision is to create a ServiceInstance, which actually also creates the CR of Clickhouse cluster, optionally, with given configuration
-func (b *BusinessLogic) Provision(request *osb.ProvisionRequest, c *broker.RequestContext) (*broker.ProvisionResponse, error) {
+func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.RequestContext) (*broker.ProvisionResponse, error) {
 	glog.V(5).Infof("get request from Provision: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
@@ -319,7 +316,7 @@ func (b *BusinessLogic) Provision(request *osb.ProvisionRequest, c *broker.Reque
 }
 
 // Deprovision is to delete the corresponding ServiceInstance, which also delete its cluster CR
-func (b *BusinessLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.RequestContext) (*broker.DeprovisionResponse, error) {
+func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.RequestContext) (*broker.DeprovisionResponse, error) {
 	glog.V(5).Infof("get request from Deprovision: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
@@ -350,13 +347,13 @@ func (b *BusinessLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.R
 }
 
 // LastOperation is to...
-func (b *BusinessLogic) LastOperation(request *osb.LastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
+func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
 	glog.V(5).Infof("get request from LastOperation: %s\n", toJson(request))
 	return &broker.LastOperationResponse{}, nil
 }
 
 // Bind is to create a Binding, which also generates a user of ClickHouse, optionally, with given username and password
-func (b *BusinessLogic) Bind(request *osb.BindRequest, c *broker.RequestContext) (*broker.BindResponse, error) {
+func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext) (*broker.BindResponse, error) {
 	glog.V(5).Infof("get request from Bind: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
@@ -396,11 +393,26 @@ func (b *BusinessLogic) Bind(request *osb.BindRequest, c *broker.RequestContext)
 			ErrorMessage: &errMsg,
 		}
 	}
-	return nil, nil
+
+	host := getCHCServiceName(instance.Name, instance.Namespace)
+	response := broker.BindResponse{
+		BindResponse: osb.BindResponse{
+			Credentials: map[string]interface{}{
+				"host":     host,
+				"user":     RandStringRunes(5),
+				"password": RandStringRunes(20),
+			},
+		},
+	}
+	if request.AcceptsIncomplete {
+		response.Async = b.async
+	}
+
+	return &response, nil
 }
 
 //Unbind is to delete a binding and the user it generated
-func (b *BusinessLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestContext) (*broker.UnbindResponse, error) {
+func (b *CHCBrokerLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestContext) (*broker.UnbindResponse, error) {
 	glog.V(5).Infof("get request from Bind: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
@@ -408,7 +420,7 @@ func (b *BusinessLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestCont
 }
 
 // Update is to update the CR of cluster
-func (b *BusinessLogic) Update(request *osb.UpdateInstanceRequest, c *broker.RequestContext) (*broker.UpdateInstanceResponse, error) {
+func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.RequestContext) (*broker.UpdateInstanceResponse, error) {
 	glog.V(5).Infof("get request from Update: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
@@ -447,7 +459,7 @@ func (b *BusinessLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Req
 	return &response, nil
 }
 
-func (b *BusinessLogic) ValidateBrokerAPIVersion(version string) error {
+func (b *CHCBrokerLogic) ValidateBrokerAPIVersion(version string) error {
 	if version == "" {
 		errMsg, errDsp := "Precondition Failed",
 			"Reject requests without X-Broker-API-Version header!"
@@ -468,14 +480,14 @@ func (b *BusinessLogic) ValidateBrokerAPIVersion(version string) error {
 	return nil
 }
 
-//func (b *BusinessLogic) validateParameters(parameters map[string]interface{}) error {
+//func (b *CHCBrokerLogic) validateParameters(parameters map[string]interface{}) error {
 //	if _, ok := parameters["cluster_name"]; !ok {
 //		return fmt.Errorf("have not assign cluster")
 //	}
 //	return nil
 //}
 
-func (b *BusinessLogic) validateServiceID(serviceID string) bool {
+func (b *CHCBrokerLogic) validateServiceID(serviceID string) bool {
 	for _, s := range *b.services {
 		if s.ID == serviceID {
 			return true
@@ -484,7 +496,7 @@ func (b *BusinessLogic) validateServiceID(serviceID string) bool {
 	return false
 }
 
-func (b *BusinessLogic) validatePlanID(serviceID, planID string) bool {
+func (b *CHCBrokerLogic) validatePlanID(serviceID, planID string) bool {
 	for _, s := range *b.services {
 		if s.ID == serviceID {
 			for _, p := range s.Plans {
@@ -495,30 +507,4 @@ func (b *BusinessLogic) validatePlanID(serviceID, planID string) bool {
 		}
 	}
 	return false
-}
-
-type BindingInfo struct {
-	User     string
-	Password string
-	Host     []string
-}
-
-type Instance struct {
-	ID        string
-	Name      string
-	Namespace string
-	ServiceID string
-	PlanID    string
-	Params    map[string]interface{}
-}
-
-func (i *Instance) Match(other *Instance) bool {
-	return reflect.DeepEqual(i, other)
-}
-
-func validateBrokerAPIVersion(version string) bool {
-	c, _ := semver.NewConstraint(versionConstraint)
-	v, _ := semver.NewVersion(version)
-	// Check if the version meets the constraints. The a variable will be true.
-	return c.Check(v)
 }

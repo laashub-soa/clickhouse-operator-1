@@ -57,12 +57,16 @@ func NewGenerator(rcc *ReconcileClickHouseCluster, cc *clickhousev1.ClickHouseCl
 	return &Generator{rcc: rcc, cc: cc}
 }
 
-func (g *Generator) labelsForStatefulSet(shardID int) map[string]string {
-	return map[string]string{
+func (g *Generator) labelsForStatefulSet(shardID int, chcLabels map[string]string) map[string]string {
+	labels := map[string]string{
 		CreateByLabelKey: "clickhouse-operator",
 		ClusterLabelKey:  g.cc.Name,
 		ShardIDLabelKey:  fmt.Sprintf("%d", shardID),
 	}
+	for k, v := range chcLabels {
+		labels[k] = v
+	}
+	return labels
 }
 
 func (g *Generator) labelsForCluster() map[string]string {
@@ -198,7 +202,7 @@ func (g *Generator) generateService(shardID int, statefulset *appsv1.StatefulSet
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      g.serviceName(shardID),
 			Namespace: g.cc.Namespace,
-			Labels:    g.labelsForStatefulSet(shardID),
+			Labels:    g.labelsForStatefulSet(shardID, g.cc.Labels),
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: statefulset.APIVersion,
 				Kind:       statefulset.Kind,
@@ -234,7 +238,7 @@ func (g *Generator) generateService(shardID int, statefulset *appsv1.StatefulSet
 					},
 				},
 			},
-			Selector:        g.labelsForStatefulSet(shardID),
+			Selector:        g.labelsForStatefulSet(shardID, g.cc.Labels),
 			ClusterIP:       "None",
 			SessionAffinity: "None",
 			Type:            "ClusterIP",
@@ -246,7 +250,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 	statefulset.Spec.Template = corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   statefulset.Name,
-			Labels: g.labelsForStatefulSet(shardID),
+			Labels: g.labelsForStatefulSet(shardID, g.cc.Labels),
 		},
 	}
 	statefulset.Spec.Template.Spec = corev1.PodSpec{
@@ -425,14 +429,14 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.statefulSetName(shardID),
 			Namespace:       g.cc.Namespace,
-			Labels:          g.labelsForStatefulSet(shardID),
+			Labels:          g.labelsForStatefulSet(shardID, g.cc.Labels),
 			OwnerReferences: g.ownerReference(),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &replicasNum,
 			//ServiceName: g.serviceName(shardID),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: g.labelsForStatefulSet(shardID),
+				MatchLabels: g.labelsForStatefulSet(shardID, g.cc.Labels),
 			},
 			ServiceName: g.serviceName(shardID),
 			// IMPORTANT

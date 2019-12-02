@@ -25,7 +25,7 @@ var (
 
 type LogicTestSuite struct {
 	suite.Suite
-	logic     *BusinessLogic
+	logic     *CHCBrokerLogic
 	namespace string
 }
 
@@ -38,7 +38,7 @@ func (s *LogicTestSuite) SetupSuite() {
 		ServiceConfigPath: "../../clickhouse.yaml",
 		Async:             false,
 	}
-	s.logic, err = NewBusinessLogic(kubeconfig, o)
+	s.logic, err = NewCHCBrokerLogic(kubeconfig, o)
 	assert.Nil(s.T(), err)
 
 	s.namespace = fmt.Sprintf("test-%s", RandStringRunes(5))
