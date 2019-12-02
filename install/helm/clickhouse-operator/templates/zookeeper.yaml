@@ -1,3 +1,4 @@
+{{ if .Values.zookeeperEnable }}
 ---
 apiVersion: v1
 kind: Service
@@ -91,4 +92,4 @@ spec:
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
-
+  {{- end }}

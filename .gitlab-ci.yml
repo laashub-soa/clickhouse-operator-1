@@ -33,7 +33,7 @@ coverage:
         sleep 20;
       done
     - wget -O ~/.kube/config http://localhost:10080/config
-    - kubectl create -f ./install/shell/clickhouse-operator.yaml --namespace clickhouse-system
+    - kubectl create -f ./install/shell/clickhouseclusters_crd.yaml --namespace clickhouse-system
     - make lint && make coverage
   tags:
     - k8s

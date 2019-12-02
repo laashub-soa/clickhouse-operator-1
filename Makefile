@@ -29,7 +29,7 @@ clean: ## Cleans up build artifacts
 	rm -rf bin/*
 
 uninstall: ## Uninstall operator and broker
-	helm delete --purge clickhouse-service-broker
+	helm delete --purge clickhouse-broker
 	helm delete --purge clickhouse-operator
 
 all-clean: uninstall## Delete all binary and resources related to clickhouse service

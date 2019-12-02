@@ -44,7 +44,7 @@ type ClickHouseClusterSpec struct {
 
 	Pod *PodPolicy `json:"pod,omitempty"`
 
-	// Pod defines the policy for pods owned by cassandra operator.
+	// Pod defines the policy for pods owned by clickhouse operator.
 	// This field cannot be updated once the CR is created.
 	Resources ClickHouseResources `json:"resources,omitempty"`
 }
