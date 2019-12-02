@@ -22,7 +22,7 @@ func RandStringRunes(n int) string {
 }
 
 func toJson(data interface{}) string {
-	o, err := json.Marshal(data)
+	o, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
 		return fmt.Sprintf("%v", data)
 	}

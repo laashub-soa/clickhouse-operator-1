@@ -84,6 +84,61 @@ type BusinessLogic struct {
 
 var _ broker.Interface = &BusinessLogic{}
 
+func (b *BusinessLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
+	instanceID := item.Spec.ExternalID
+	serviceID := item.Spec.ClusterServiceClassName
+	planID := item.Spec.ClusterServicePlanName
+	parameters := make(map[string]interface{})
+
+	if item.Spec.Parameters != nil {
+		err := json.Unmarshal(item.Spec.Parameters.Raw, &parameters)
+		if err != nil {
+			glog.Errorf("unmarshal parameters err: %s", err)
+			return
+		}
+	}
+
+	if instanceID == "" || serviceID == "" || planID == "" {
+		glog.V(5).Infoln("skip recovery serviceInstance, cuz all IDs are null")
+		return
+	}
+	instance := Instance{
+		ID:        instanceID,
+		Name:      item.Name,
+		Namespace: item.Namespace,
+		ServiceID: serviceID,
+		PlanID:    planID,
+		Params:    parameters,
+	}
+	b.instances[instanceID] = &instance
+	glog.V(5).Infof("recoveryInstance serviceInstance: %s\n", instanceID)
+	return
+}
+
+func (b *BusinessLogic) recoveryBinding(item *v1beta1.ServiceBinding) {
+	secretName := item.Spec.SecretName
+	namespace := item.Namespace
+	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
+	defer cancel()
+	secret := corev1.Secret{}
+	if err := b.cli.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			glog.Warningf("can not find secret")
+			return
+		}
+		err = fmt.Errorf("can not get secret: %s, err: %s", secretName, err)
+		glog.Errorf(err.Error())
+		return
+	}
+
+	b.bindings[item.Spec.ExternalID] = &BindingInfo{
+		User:     string(secret.Data["user"]),
+		Password: string(secret.Data["password"]),
+		Host:     BytesToStringSlice(secret.Data["host"]),
+	}
+	glog.V(5).Infof("recoveryInstance bindings: %s", item.Spec.ExternalID)
+}
+
 // Recovery instances data from restart
 func (b *BusinessLogic) Recovery() error {
 	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
@@ -96,43 +151,11 @@ func (b *BusinessLogic) Recovery() error {
 	}
 
 	for _, item := range serviceInstanceList.Items {
-		var find bool
 		for _, service := range *b.services {
 			if item.Spec.ClusterServiceClassName == service.ID {
-				find = true
-				break
+				b.recoveryInstance(&item)
 			}
 		}
-		if !find {
-			continue
-		}
-		instanceID := item.Spec.ExternalID
-		serviceID := item.Spec.ClusterServiceClassName
-		planID := item.Spec.ClusterServicePlanName
-		parameters := make(map[string]interface{})
-
-		if item.Spec.Parameters != nil {
-			err := json.Unmarshal(item.Spec.Parameters.Raw, &parameters)
-			if err != nil {
-				glog.Errorf("unmarshal parameters err: %s", err)
-				return err
-			}
-		}
-
-		if instanceID == "" || serviceID == "" || planID == "" {
-			glog.V(5).Infoln("skip recovery serviceInstance, cuz all IDs are null")
-			continue
-		}
-		instance := Instance{
-			ID:        instanceID,
-			Name:      item.Name,
-			Namespace: item.Namespace,
-			ServiceID: serviceID,
-			PlanID:    planID,
-			Params:    parameters,
-		}
-		b.instances[instanceID] = &instance
-		glog.V(5).Infof("recovery serviceInstance: %s\n", instanceID)
 	}
 
 	serviceBindingList := v1beta1.ServiceBindingList{}
@@ -150,34 +173,11 @@ func (b *BusinessLogic) Recovery() error {
 			continue
 		}
 
-		var find bool
 		for _, instance := range b.instances {
 			if instance.Namespace == item.Namespace && instance.Name == item.Spec.InstanceRef.Name {
-				find = true
-				break
+				b.recoveryBinding(&item)
 			}
 		}
-		if !find {
-			continue
-		}
-
-		secret := corev1.Secret{}
-		if err := b.cli.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, &secret); err != nil {
-			if errors.IsNotFound(err) {
-				glog.Warningf("can not find secret")
-				continue
-			}
-			err = fmt.Errorf("can not get secret: %s, err: %s", secretName, err)
-			glog.Errorf(err.Error())
-			return err
-		}
-
-		b.bindings[item.Spec.ExternalID] = &BindingInfo{
-			User:     string(secret.Data["user"]),
-			Password: string(secret.Data["password"]),
-			Host:     BytesToStringSlice(secret.Data["host"]),
-		}
-		glog.V(5).Infof("recovery bindings: %s", item.Spec.ExternalID)
 	}
 	return nil
 }
