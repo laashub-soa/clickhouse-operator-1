@@ -221,19 +221,15 @@ loop:
 		},
 	}
 
-	clickhouse, err := NewClickHouseCluster(&planSpec, meta)
-	if err != nil {
-		return
-	}
-
+	chc := NewClickHouseCluster(&planSpec, meta)
 	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
 	defer cancel()
-	err = b.cli.Create(ctx, clickhouse)
+	err = b.cli.Create(ctx, chc)
 	if err != nil && errors.IsAlreadyExists(err) {
-		err = b.cli.Update(ctx, clickhouse)
+		err = b.cli.Update(ctx, chc)
 	}
 	if err != nil {
-		glog.Errorf("create clickhouse instance err: %s", err.Error())
+		glog.Errorf("create chc instance err: %s", err.Error())
 	}
 	return err
 }
@@ -395,14 +391,20 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 	}
 
 	host := getCHCServiceName(instance.Name, instance.Namespace)
+	user, password := RandStringRunes(5), RandStringRunes(20)
 	response := broker.BindResponse{
 		BindResponse: osb.BindResponse{
 			Credentials: map[string]interface{}{
-				"host":     host,
-				"user":     RandStringRunes(5),
-				"password": RandStringRunes(20),
+				"host":     []string{host},
+				"user":     user,
+				"password": password,
 			},
 		},
+	}
+	b.bindings[request.BindingID] = &BindingInfo{
+		User:     user,
+		Password: password,
+		Host:     []string{host},
 	}
 	if request.AcceptsIncomplete {
 		response.Async = b.async

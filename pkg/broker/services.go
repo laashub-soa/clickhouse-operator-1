@@ -81,16 +81,12 @@ func GetClickHouseClient(kubeConfigPath string) (client.Client, error) {
 	return cli, err
 }
 
-func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) (*v1.ClickHouseCluster, error) {
+func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) *v1.ClickHouseCluster {
 	clickhouse := &v1.ClickHouseCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ClickHouseCluster",
-			APIVersion: "service.diamond.sensetime.com/v1",
-		},
 		ObjectMeta: meta,
 		Spec:       spec.ToClickHouseClusterSpec(),
 	}
-	return clickhouse, nil
+	return clickhouse
 }
 
 type ParametersSpec v1.ClickHouseClusterSpec
