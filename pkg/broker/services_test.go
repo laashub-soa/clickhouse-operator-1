@@ -17,7 +17,7 @@ var data = `
   planupdatable: true
   metadata:
     display_name: clickhouse service
-    image_url: http://gitlab.bj.sensetime.com/uploads/-/system/project/avatar/10933/clickhouse-logo.png
+    image_url: https://gitlab.bj.sensetime.com/uploads/-/system/project/avatar/14162/Clickhouse-logo-small.png
   plans:
   - name: default
     id: 2db0b31d-6912-4d24-8704-cfdf9b98af81
@@ -61,7 +61,7 @@ func TestNewClickHouseCluster(t *testing.T) {
 		},
 	}
 
-	_, err = NewClickHouseCluster(&planSpec, meta)
+	NewClickHouseCluster(&planSpec, meta)
 	assert.Nil(t, err)
 }
 

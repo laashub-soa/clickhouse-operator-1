@@ -78,7 +78,7 @@ func runWithContext(ctx context.Context) error {
 
 	addr := ":" + strconv.Itoa(options.Port)
 
-	businessLogic, err := broker.NewBusinessLogic(options.KubeConfig, options.Options)
+	businessLogic, err := broker.NewCHCBrokerLogic(options.KubeConfig, options.Options)
 	if err != nil {
 		return err
 	}
