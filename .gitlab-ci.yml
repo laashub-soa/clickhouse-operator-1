@@ -1,7 +1,7 @@
 stages:
   - CODE_SCAN
   - UNIT-TEST
-  - PROVISION
+  - E2E
   - AMBER
 
 variables:
@@ -37,3 +37,28 @@ coverage:
     - make lint && make coverage
   tags:
     - k8s
+
+replicated-merge-tree:
+    stage: E2E
+    services:
+      - name: registry.sensetime.com/diamond/kind:v1.14.4
+        alias: minikube
+    image: registry.sensetime.com/wangjun3/golangci-lint
+    script:
+      - mkdir -p ~/.kube/
+      - >
+        until curl -s --fail http://localhost:10080/kubernetes-ready; do
+          sleep 20;
+        done
+      - wget -O ~/.kube/config http://localhost:10080/config
+      - helm install --namespace clickhouse-system --name clickhouse-operator ./install/helm/clickhouse-operator --set zookeeperReplicas=1 && sleep 2s
+      - kubectl create namespace test && kubectl create -f ./samples/simple.yaml -n test && sleep 5s
+      - >
+        while true;do
+          phase=$(kubectl get chc simple -n test -o jsonpath='{.status.phase}')
+          if [ "${phase}" = "Running" ];then
+            break
+          fi
+        done
+      - bash -x ./tests/e2e/Replicated-Merge-Tree/test.sh simple test
+

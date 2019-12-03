@@ -6,6 +6,7 @@ default_config:
   - ./config/02-clickhouse-logger.xml
 default_shard_count: 1
 default_replicas_count: 1
+default_data_capacity: 10Gi
 default_zookeeper:
   nodes:
     - host: zookeeper.clickhouse-system
