@@ -8,8 +8,8 @@ spec:
   replicasCount: 2
   resources:
     requests:
-      cpu: '1'
-      memory: 1Gi
+      cpu: '20m'
+      memory: 100Mi
     limits:
-      cpu: '1'
-      memory: 1Gi
+      cpu: '20m'
+      memory: 100Mi
