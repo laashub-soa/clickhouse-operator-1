@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/env bash
 
 function wait_for_chc_ready() {
   name=${1:?"lack clickhouse name"}
   namespace=${2:?"lack clickhouse namespace"}
   retry_num=0
-  while True; do
+  while true; do
     ready=$(kubectl get clickhousecluster "${name}" -n "${namespace}" -o jsonpath="{.status.phase}")
     if [ "${ready}" = "Running" ];then
       break
