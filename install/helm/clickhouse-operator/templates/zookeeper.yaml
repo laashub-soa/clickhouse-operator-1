@@ -48,7 +48,7 @@ spec:
     matchLabels:
       app: zk
   serviceName: zk-hs
-  replicas: 3
+  replicas: {{ .Values.zookeeperReplicas }}
   updateStrategy:
     type: RollingUpdate
   podManagementPolicy: OrderedReady
@@ -64,7 +64,7 @@ spec:
           resources:
             requests:
               memory: "1Gi"
-              cpu: "0.5"
+              cpu: "0.2"
           ports:
             - containerPort: 2181
               name: client

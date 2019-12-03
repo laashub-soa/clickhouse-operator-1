@@ -45,12 +45,13 @@ replicated-merge-tree:
         alias: minikube
     image: registry.sensetime.com/wangjun3/golangci-lint
     script:
+      - mkdir -p ~/.kube/
       - >
         until curl -s --fail http://localhost:10080/kubernetes-ready; do
           sleep 20;
         done
       - wget -O ~/.kube/config http://localhost:10080/config
-      - helm install --namespace clickhouse-system --name clickhouse-operator ./install/helm/clickhouse-operator && sleep 2s
+      - helm install --namespace clickhouse-system --name clickhouse-operator ./install/helm/clickhouse-operator --set zookeeperReplicas=1 && sleep 2s
       - kubectl create namespace test && kubectl create -f ./samples/simple.yaml -n test && sleep 5s
       - >
         while True;do
