@@ -20,7 +20,8 @@ function wait_for_chc_ready() {
 
 function get_statefulsets_from_chc() {
     name=${1:?"lack clickhouse name"}
-    kubectl get statefulset -l clickhouse-cluster="${name}" -o jsonpath="{.items[*].metadata.name}"
+    namespace=${2:?"lack clickhouse namespace"}
+    kubectl get statefulset -l clickhouse-cluster="${name}" -n "${namespace}" -o jsonpath="{.items[*].metadata.name}"
 }
 
 function get_pods_from_statefulset() {

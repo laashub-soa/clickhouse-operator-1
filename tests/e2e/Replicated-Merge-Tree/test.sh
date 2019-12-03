@@ -22,8 +22,8 @@ do
   do
     pod_name="${statefulset}"-$i
     host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
-    kubectl exec "$pod_name" --namespace "${namespace}" -- clickhouse-client -h "$host" --query="create database if not exists test";
-    kubectl exec "$pod_name" --namespace "${namespace}" -- clickhouse-client -h "$host" -d test --query="${query}";
+    kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" --query="create database if not exists test";
+    kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}";
   done
 done
 
@@ -32,7 +32,7 @@ for statefulset in ${statefulsets};
 do
   pod_name="${statefulset}"-0
   host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
-  kubectl exec "$pod_name" --namespace "${namespace}" -- clickhouse-client -h "$host" -d test --query="${query}";
+  kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}";
 done
 
 query="select CounterID from test_table where UserID=9527"
@@ -40,7 +40,7 @@ for statefulset in ${statefulsets};
 do
   pod_name="${statefulset}"-1
   host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
-  counter_id=$(kubectl exec "$pod_name" --namespace "${namespace}" -- clickhouse-client -h "$host" -d test --query="${query}");
+  counter_id=$(kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}");
   if [ "${counter_id}" != "12345" ];then
     echo "counter_id is not 12345"
     exit 1
