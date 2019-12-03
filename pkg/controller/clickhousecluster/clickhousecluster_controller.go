@@ -504,6 +504,9 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		c.Spec.Zookeeper = config.DefaultZookeeper
 		changed = true
 	}
+	if c.Spec.DataStorageClass != "" && c.Spec.DataCapacity == "" {
+		c.Spec.DataCapacity = config.DefaultDataCapacity
+	}
 	if c.Spec.CustomSettings == "" {
 		c.Spec.CustomSettings = "<yandex></yandex>"
 		changed = true

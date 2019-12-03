@@ -25,10 +25,10 @@
               resources:
                 requests:
                   cpu: '1'
-                  memory: 2Gi
+                  memory: 4Gi
                 limits:
                   cpu: '1'
-                  memory: 2Gi
+                  memory: 4Gi
     - name: ceph
       id: 80009ea6-ac3c-4404-9073-2f889471a680
       description: "以ceph作为数据存储的配置"
@@ -48,7 +48,7 @@
               resources:
                 requests:
                   cpu: '1'
-                  memory: 2Gi
+                  memory: 4Gi
                 limits:
                   cpu: '1'
-                  memory: 2Gi
+                  memory: 4Gi

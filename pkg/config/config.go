@@ -21,6 +21,7 @@ type DefaultConfig struct {
 	DefaultConfig                  []string                      `yaml:"default_config"`
 	defaultXMLConfig               map[string]string             `yaml:"default_xml_config"`
 	DefaultZookeeper               *clickhousev1.ZookeeperConfig `yaml:"default_zookeeper"`
+	DefaultDataCapacity            string                        `yaml:"default_data_capacity"`
 }
 
 func (d *DefaultConfig) GetDefaultXMLConfig() map[string]string {
