@@ -345,11 +345,11 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10Mi",
+					CPU:    "10mi",
 					Memory: "100mi",
 				}),
 				Limits: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10Mi",
+					CPU:    "10mi",
 					Memory: "100mi",
 				}),
 			},
