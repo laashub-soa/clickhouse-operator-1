@@ -1,7 +1,49 @@
+---
+# Source: clickhouse-operator/templates/broker-configmap.yaml
 apiVersion: v1
-kind: Namespace
+kind: ConfigMap
 metadata:
-  name: clickhouse-system
+  name: clickhouse-operator-config
+  namespace: "clickhouse-system"
+data:
+  config.yaml: |-
+    default_clickhouse_image: "registry.sensetime.com/diamond/clickhouse-server:v19.16.2.2"
+    default_clickhouse_init_image: "registry.sensetime.com/diamond/clickhouse-init:v0.2.0"
+    default_clickhouse_exporter_image: "registry.sensetime.com/diamond/clickhouse-exporter:v0.2.0"
+    default_config:
+      - /etc/clickhouse-operator/01-clickhouse-listen.xml
+      - /etc/clickhouse-operator/02-clickhouse-logger.xml
+    default_shard_count: 1
+    default_replicas_count: 1
+    default_data_capacity: 10Gi
+    default_zookeeper:
+      nodes:
+        - host: zookeeper.clickhouse-system
+          port: 2181
+      session_timeout_ms: 30000
+      operation_timeout_ms: 10000
+      root: /clickhouse/tables
+      identity: user:password
+  01-clickhouse-listen.xml: |-
+    <yandex>
+        <!-- Listen wildcard address to allow accepting connections from other containers and host network. -->
+        <listen_host>0.0.0.0</listen_host>
+        <listen_try>1</listen_try>
+    </yandex>
+  02-clickhouse-logger.xml: |-
+    <yandex>
+        <logger>
+            <!-- Possible levels: https://github.com/pocoproject/poco/blob/develop/Foundation/include/Poco/Logger.h#L105 -->
+            <level>trace</level>
+            <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+            <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+            <size>1000M</size>
+            <count>10</count>
+            <!-- Default behavior is autodetection (log to console if not daemon mode and is tty) -->
+            <console>1</console>
+        </logger>
+    </yandex>
+
 ---
 # Source: clickhouse-operator/templates/service_account.yaml
 apiVersion: v1
@@ -9,7 +51,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: clickhouse-operator
-    chart: clickhouse-operator-0.1.0
+    chart: clickhouse-operator-0.2.0
     heritage: Tiller
     release: clickhouse-operator
   name: clickhouse-operator
@@ -23,7 +65,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   labels:
     app: clickhouse-operator
-    chart: clickhouse-operator-0.1.0
+    chart: clickhouse-operator-0.2.0
     heritage: Tiller
     release: clickhouse-operator
   name: clickhouse-operator
@@ -105,7 +147,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: clickhouse-operator
-    chart: clickhouse-operator-0.1.0
+    chart: clickhouse-operator-0.2.0
     heritage: Tiller
     release: clickhouse-operator
   name: clickhouse-operator
@@ -127,7 +169,7 @@ metadata:
   namespace: clickhouse-system
   labels:
     app: clickhouse-operator
-    chart: clickhouse-operator-0.1.0
+    chart: clickhouse-operator-0.2.0
     heritage: Tiller
     operator: clickhouse
     release: clickhouse-operator
@@ -149,7 +191,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: clickhouse-operator
-        image: "registry.sensetime.com/diamond/service-providers/clickhouse-operator:v0.0.1"
+        image: "registry.sensetime.com/diamond/service-providers/clickhouse-operator:v0.2.0"
         imagePullPolicy: "Always"
         resources:
           limits:
@@ -160,15 +202,24 @@ spec:
             memory: 50Mi
           
         env:
-          - name: WATCH_NAMESPACE #如果设置为空，则监控所有namespace
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: OPERATOR_NAME
-            value: "clickhouse-operator"
-          - name: LOG_LEVEL
-            value: Debug
+        - name: WATCH_NAMESPACE #如果设置为空，则监控所有namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: "clickhouse-operator"
+        - name: LOG_LEVEL
+          value: Debug
+        volumeMounts:
+        - mountPath: /etc/clickhouse-operator/config
+          name: clickhouse-operator-config
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: clickhouse-operator-config
+        name: clickhouse-operator-config
+
 
 ---
 # Source: clickhouse-operator/templates/service-monitor.yaml

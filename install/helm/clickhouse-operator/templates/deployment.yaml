@@ -38,14 +38,23 @@ spec:
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         env:
-          - name: WATCH_NAMESPACE #如果设置为空，则监控所有namespace
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: OPERATOR_NAME
-            value: "clickhouse-operator"
+        - name: WATCH_NAMESPACE #如果设置为空，则监控所有namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: "clickhouse-operator"
 {{- if .Values.debug }}
-          - name: LOG_LEVEL
-            value: Debug
+        - name: LOG_LEVEL
+          value: Debug
+        volumeMounts:
+        - mountPath: /etc/clickhouse-operator/config
+          name: clickhouse-operator-config
 {{- end }}
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: clickhouse-operator-config
+        name: clickhouse-operator-config
+

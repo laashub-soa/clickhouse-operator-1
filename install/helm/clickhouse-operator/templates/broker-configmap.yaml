@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-operator-config
+  namespace: "{{ .Release.Namespace }}"
+data:
+  config.yaml: |-
+    default_clickhouse_image: "registry.sensetime.com/diamond/clickhouse-server:latest"
+    default_clickhouse_init_image: "registry.sensetime.com/diamond/clickhouse-init:latest"
+    default_clickhouse_exporter_image: "registry.sensetime.com/diamond/clickhouse-exporter:latest"
+    default_config:
+      - /etc/clickhouse-operator/01-clickhouse-listen.xml
+      - /etc/clickhouse-operator/02-clickhouse-logger.xml
+    default_shard_count: 1
+    default_replicas_count: 1
+    default_data_capacity: 10Gi
+    default_zookeeper:
+      nodes:
+        - host: zookeeper.clickhouse-system
+          port: 2181
+      session_timeout_ms: 30000
+      operation_timeout_ms: 10000
+      root: /clickhouse/tables
+      identity: user:password
+  01-clickhouse-listen.xml: |-
+    <yandex>
+        <!-- Listen wildcard address to allow accepting connections from other containers and host network. -->
+        <listen_host>0.0.0.0</listen_host>
+        <listen_try>1</listen_try>
+    </yandex>
+  02-clickhouse-logger.xml: |-
+    <yandex>
+        <logger>
+            <!-- Possible levels: https://github.com/pocoproject/poco/blob/develop/Foundation/include/Poco/Logger.h#L105 -->
+            <level>trace</level>
+            <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+            <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+            <size>1000M</size>
+            <count>10</count>
+            <!-- Default behavior is autodetection (log to console if not daemon mode and is tty) -->
+            <console>1</console>
+        </logger>
+    </yandex>
