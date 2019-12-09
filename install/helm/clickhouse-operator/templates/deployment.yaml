@@ -49,7 +49,7 @@ spec:
         - name: LOG_LEVEL
           value: Debug
         volumeMounts:
-        - mountPath: /etc/clickhouse-operator/config
+        - mountPath: /etc/clickhouse-operator
           name: clickhouse-operator-config
 {{- end }}
       volumes:

@@ -8,5 +8,4 @@ FROM  registry.sensetime.com/docker.io/ubuntu:16.04
 ARG BUILD_DIR=/go/src/github.com/mackwong/clickhouse-operator/
 WORKDIR /project/clickhouse
 COPY --from=0 ${BUILD_DIR}/bin/clickhouse-operator /usr/local/bin/clickhouse-operator
-COPY config config
 ENTRYPOINT ["clickhouse-operator"]
