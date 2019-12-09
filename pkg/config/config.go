@@ -10,7 +10,7 @@ import (
 	"reflect"
 )
 
-const configFile = "config/config.yaml"
+const configFile = "/etc/clickhouse-operator/config.yaml"
 
 type DefaultConfig struct {
 	DefaultClickhouseImage         string                        `yaml:"default_clickhouse_image"`
