@@ -276,7 +276,7 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 	response := broker.ProvisionResponse{
 		ProvisionResponse: osb.ProvisionResponse{
 			Async:        true,
-			OperationKey: &[]osb.OperationKey{"provision"}[0],
+			OperationKey: &[]osb.OperationKey{"Provision_50"}[0],
 		},
 	}
 
@@ -327,7 +327,7 @@ func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.
 	response := broker.DeprovisionResponse{
 		DeprovisionResponse: osb.DeprovisionResponse{
 			Async:        true,
-			OperationKey: &[]osb.OperationKey{"deprovision"}[0],
+			OperationKey: &[]osb.OperationKey{"Deprovision_50"}[0],
 		},
 	}
 
@@ -409,11 +409,11 @@ func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *bro
 	var state osb.LastOperationState
 	var err error
 	switch *request.OperationKey {
-	case "provision":
+	case "Provision":
 		state, err = b.checkProvisionAction(request.InstanceID)
-	case "deprovision":
+	case "Deprovision":
 		state, err = b.checkDeprovisionAction(request.InstanceID)
-	case "update":
+	case "Update":
 		state, err = b.checkUpdateAction(request.InstanceID)
 	default:
 		err = osb.HTTPStatusCodeError{
@@ -540,7 +540,7 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	response := broker.UpdateInstanceResponse{
 		UpdateInstanceResponse: osb.UpdateInstanceResponse{
 			Async:        true,
-			OperationKey: &[]osb.OperationKey{"update"}[0],
+			OperationKey: &[]osb.OperationKey{"Update_40"}[0],
 		},
 	}
 	response.Async = true
