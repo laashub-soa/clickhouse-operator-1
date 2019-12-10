@@ -58,7 +58,6 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 		return nil, err
 	}
 	return &CHCBrokerLogic{
-		async:     o.Async,
 		services:  services,
 		cli:       cli,
 		instances: make(map[string]*Instance, 10),
@@ -70,7 +69,6 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 type CHCBrokerLogic struct {
 	// Indicates if the broker should handle the requests asynchronously.
 	broker.Interface
-	async bool
 	// Synchronize go routines.
 	sync.RWMutex
 	services  *[]osb.Service
@@ -193,8 +191,7 @@ func (b *CHCBrokerLogic) GetCatalog(request *broker.RequestContext) (*broker.Cat
 
 func (b *CHCBrokerLogic) doProvision(instance *Instance) (err error) {
 	planSpec := ParametersSpec{}
-	err = mapstructure.Decode(instance.Params, &planSpec)
-	if err != nil {
+	if err = mapstructure.Decode(instance.Params, &planSpec); err != nil {
 		return
 	}
 
@@ -260,6 +257,11 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 	b.Lock()
 	defer b.Unlock()
 
+	//https://github.com/openservicebrokerapi/servicebroker/blob/v2.15/spec.md#asynchronous-operations
+	if !request.AcceptsIncomplete {
+		return nil, asyncRequiredError
+	}
+
 	if request.ServiceID == "" || request.PlanID == "" ||
 		request.Context[InstanceName] == nil || request.Context[InstanceNamespace] == nil ||
 		!(b.validateServiceID(request.ServiceID) && b.validatePlanID(request.ServiceID, request.PlanID)) {
@@ -303,11 +305,7 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 		}
 	}
 	b.instances[request.InstanceID] = instance
-
-	if request.AcceptsIncomplete {
-		response.Async = b.async
-	}
-
+	response.Async = true
 	return &response, nil
 }
 
@@ -317,10 +315,12 @@ func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.
 	b.Lock()
 	defer b.Unlock()
 
-	response := broker.DeprovisionResponse{}
-	if request.AcceptsIncomplete {
-		response.Async = b.async
+	if !request.AcceptsIncomplete {
+		return nil, asyncRequiredError
 	}
+
+	response := broker.DeprovisionResponse{}
+	response.Async = true
 
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
@@ -399,15 +399,13 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 				"user":     user,
 				"password": password,
 			},
+			Async: false,
 		},
 	}
 	b.bindings[request.BindingID] = &BindingInfo{
 		User:     user,
 		Password: password,
 		Host:     []string{host},
-	}
-	if request.AcceptsIncomplete {
-		response.Async = b.async
 	}
 
 	return &response, nil
@@ -426,6 +424,10 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	glog.V(5).Infof("get request from Update: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
+
+	if !request.AcceptsIncomplete {
+		return nil, asyncRequiredError
+	}
 
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
@@ -455,9 +457,7 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	b.instances[request.InstanceID] = instance
 
 	response := broker.UpdateInstanceResponse{}
-	if request.AcceptsIncomplete {
-		response.Async = b.async
-	}
+	response.Async = true
 	return &response, nil
 }
 
