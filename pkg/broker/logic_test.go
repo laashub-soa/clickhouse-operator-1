@@ -36,7 +36,6 @@ func (s *LogicTestSuite) SetupSuite() {
 	kubeconfig := path.Join(u.HomeDir, ".kube", "config")
 	o := Options{
 		ServiceConfigPath: "../../clickhouse.yaml",
-		Async:             false,
 	}
 	s.logic, err = NewCHCBrokerLogic(kubeconfig, o)
 	assert.Nil(s.T(), err)
@@ -74,9 +73,10 @@ func (s *LogicTestSuite) TestB_GetCatalog() {
 
 func (s *LogicTestSuite) TestC_Provision() {
 	request := &osb.ProvisionRequest{
-		InstanceID: instanceID,
-		PlanID:     planID,
-		ServiceID:  serviceID,
+		InstanceID:        instanceID,
+		PlanID:            planID,
+		ServiceID:         serviceID,
+		AcceptsIncomplete: true,
 		Parameters: map[string]interface{}{
 			"cluster_name": "test",
 		},
@@ -141,9 +141,10 @@ func (s *LogicTestSuite) TestE_UnBind() {
 
 func (s *LogicTestSuite) TestF_Deprovision() {
 	request := &osb.DeprovisionRequest{
-		InstanceID: instanceID,
-		PlanID:     planID,
-		ServiceID:  serviceID,
+		InstanceID:        instanceID,
+		PlanID:            planID,
+		AcceptsIncomplete: true,
+		ServiceID:         serviceID,
 	}
 	_, err := s.logic.Deprovision(request, &broker.RequestContext{
 		Request: &http.Request{

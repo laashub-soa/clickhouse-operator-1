@@ -10,6 +10,7 @@ import (
 
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	v1alpha1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	"github.com/mackwong/clickhouse-operator/pkg/controller/clickhousecluster"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +31,10 @@ const (
 	InstanceNamespace = "namespace"
 	ServiceID         = "service_id"
 	PlanID            = "plan_id"
+
+	ProvisionOperation   = "Provision"
+	DeprovisionOperation = "Deprovision"
+	UpdateOperation      = "Update"
 )
 
 var (
@@ -58,7 +63,6 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 		return nil, err
 	}
 	return &CHCBrokerLogic{
-		async:     o.Async,
 		services:  services,
 		cli:       cli,
 		instances: make(map[string]*Instance, 10),
@@ -70,7 +74,6 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 type CHCBrokerLogic struct {
 	// Indicates if the broker should handle the requests asynchronously.
 	broker.Interface
-	async bool
 	// Synchronize go routines.
 	sync.RWMutex
 	services  *[]osb.Service
@@ -193,8 +196,7 @@ func (b *CHCBrokerLogic) GetCatalog(request *broker.RequestContext) (*broker.Cat
 
 func (b *CHCBrokerLogic) doProvision(instance *Instance) (err error) {
 	planSpec := ParametersSpec{}
-	err = mapstructure.Decode(instance.Params, &planSpec)
-	if err != nil {
+	if err = mapstructure.Decode(instance.Params, &planSpec); err != nil {
 		return
 	}
 
@@ -260,6 +262,11 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 	b.Lock()
 	defer b.Unlock()
 
+	//https://github.com/openservicebrokerapi/servicebroker/blob/v2.15/spec.md#asynchronous-operations
+	if !request.AcceptsIncomplete {
+		return nil, asyncRequiredError
+	}
+
 	if request.ServiceID == "" || request.PlanID == "" ||
 		request.Context[InstanceName] == nil || request.Context[InstanceNamespace] == nil ||
 		!(b.validateServiceID(request.ServiceID) && b.validatePlanID(request.ServiceID, request.PlanID)) {
@@ -270,7 +277,12 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 		}
 	}
 
-	response := broker.ProvisionResponse{}
+	response := broker.ProvisionResponse{
+		ProvisionResponse: osb.ProvisionResponse{
+			Async:        true,
+			OperationKey: &[]osb.OperationKey{ProvisionOperation}[0],
+		},
+	}
 
 	instance := &Instance{
 		ID:        request.InstanceID,
@@ -303,11 +315,6 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 		}
 	}
 	b.instances[request.InstanceID] = instance
-
-	if request.AcceptsIncomplete {
-		response.Async = b.async
-	}
-
 	return &response, nil
 }
 
@@ -317,9 +324,15 @@ func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.
 	b.Lock()
 	defer b.Unlock()
 
-	response := broker.DeprovisionResponse{}
-	if request.AcceptsIncomplete {
-		response.Async = b.async
+	if !request.AcceptsIncomplete {
+		return nil, asyncRequiredError
+	}
+
+	response := broker.DeprovisionResponse{
+		DeprovisionResponse: osb.DeprovisionResponse{
+			Async:        true,
+			OperationKey: &[]osb.OperationKey{DeprovisionOperation}[0],
+		},
 	}
 
 	instance, ok := b.instances[request.InstanceID]
@@ -342,10 +355,82 @@ func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.
 	return &response, nil
 }
 
+func (b *CHCBrokerLogic) checkProvisionAction(instanceID string) (osb.LastOperationState, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
+	defer cancel()
+	clickHouseClusterList := v1alpha1.ClickHouseClusterList{}
+
+	labelSelect := labels.SelectorFromSet(map[string]string{InstanceID: instanceID})
+	err := b.cli.List(ctx, &clickHouseClusterList, &client.ListOptions{
+		LabelSelector: labelSelect,
+	})
+	if err != nil {
+		return osb.StateFailed, err
+	}
+	if len(clickHouseClusterList.Items) != 1 {
+		return osb.StateFailed, fmt.Errorf("the num of find clickhousecluster is not 1")
+	}
+	if clickHouseClusterList.Items[0].Status.Phase == clickhousecluster.ClusterPhaseRunning {
+		return osb.StateSucceeded, nil
+	}
+	return osb.StateInProgress, nil
+}
+
+func (b *CHCBrokerLogic) checkDeprovisionAction(instanceID string) (osb.LastOperationState, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
+	defer cancel()
+	clickHouseClusterList := v1alpha1.ClickHouseClusterList{}
+
+	labelSelect := labels.SelectorFromSet(map[string]string{InstanceID: instanceID})
+	err := b.cli.List(ctx, &clickHouseClusterList, &client.ListOptions{
+		LabelSelector: labelSelect,
+	})
+	if err != nil {
+		return osb.StateFailed, err
+	}
+	if len(clickHouseClusterList.Items) == 1 {
+		return osb.StateInProgress, nil
+	}
+	if len(clickHouseClusterList.Items) == 0 {
+		return osb.StateSucceeded, nil
+	}
+	return osb.StateFailed, fmt.Errorf("the num of find clickhousecluster is more than 1")
+}
+
+func (b *CHCBrokerLogic) checkUpdateAction(instanceID string) (osb.LastOperationState, error) {
+	return b.checkProvisionAction(instanceID)
+}
+
 // LastOperation is to...
 func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
 	glog.V(5).Infof("get request from LastOperation: %s\n", toJson(request))
-	return &broker.LastOperationResponse{}, nil
+	if request.OperationKey == nil {
+		return nil, osb.HTTPStatusCodeError{
+			StatusCode:  http.StatusServiceUnavailable,
+			Description: &[]string{"can not find operation key"}[0],
+		}
+	}
+	var state osb.LastOperationState
+	var err error
+	switch *request.OperationKey {
+	case ProvisionOperation:
+		state, err = b.checkProvisionAction(request.InstanceID)
+	case DeprovisionOperation:
+		state, err = b.checkDeprovisionAction(request.InstanceID)
+	case UpdateOperation:
+		state, err = b.checkUpdateAction(request.InstanceID)
+	default:
+		err = osb.HTTPStatusCodeError{
+			StatusCode:  http.StatusServiceUnavailable,
+			Description: &[]string{"unknown operation key"}[0],
+		}
+	}
+	return &broker.LastOperationResponse{
+		LastOperationResponse: osb.LastOperationResponse{
+			State: state,
+		},
+	}, err
+
 }
 
 // Bind is to create a Binding, which also generates a user of ClickHouse, optionally, with given username and password
@@ -399,15 +484,13 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 				"user":     user,
 				"password": password,
 			},
+			Async: false,
 		},
 	}
 	b.bindings[request.BindingID] = &BindingInfo{
 		User:     user,
 		Password: password,
 		Host:     []string{host},
-	}
-	if request.AcceptsIncomplete {
-		response.Async = b.async
 	}
 
 	return &response, nil
@@ -426,6 +509,10 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	glog.V(5).Infof("get request from Update: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
+
+	if !request.AcceptsIncomplete {
+		return nil, asyncRequiredError
+	}
 
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
@@ -454,10 +541,13 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	}
 	b.instances[request.InstanceID] = instance
 
-	response := broker.UpdateInstanceResponse{}
-	if request.AcceptsIncomplete {
-		response.Async = b.async
+	response := broker.UpdateInstanceResponse{
+		UpdateInstanceResponse: osb.UpdateInstanceResponse{
+			Async:        true,
+			OperationKey: &[]osb.OperationKey{UpdateOperation}[0],
+		},
 	}
+	response.Async = true
 	return &response, nil
 }
 
