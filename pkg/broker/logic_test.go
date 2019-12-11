@@ -36,7 +36,6 @@ func (s *LogicTestSuite) SetupSuite() {
 	kubeconfig := path.Join(u.HomeDir, ".kube", "config")
 	o := Options{
 		ServiceConfigPath: "../../clickhouse.yaml",
-		Async:             false,
 	}
 	s.logic, err = NewCHCBrokerLogic(kubeconfig, o)
 	assert.Nil(s.T(), err)
