@@ -8,7 +8,7 @@ import (
 
 var (
 	asyncRequiredError = newAsyncRequiredError()
-	concurrencyError   = newConcurrencyError()
+	//concurrencyError   = newConcurrencyError()
 )
 
 func newAsyncRequiredError() v2.HTTPStatusCodeError {
