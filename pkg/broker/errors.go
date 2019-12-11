@@ -19,10 +19,10 @@ func newAsyncRequiredError() v2.HTTPStatusCodeError {
 	}
 }
 
-func newConcurrencyError() v2.HTTPStatusCodeError {
-	return v2.HTTPStatusCodeError{
-		StatusCode:   http.StatusUnprocessableEntity,
-		ErrorMessage: &[]string{v2.ConcurrencyErrorMessage}[0],
-		Description:  &[]string{v2.ConcurrencyErrorDescription}[0],
-	}
-}
+//func VjjnewConcurrencyError() v2.HTTPStatusCodeError {
+//	return v2.HTTPStatusCodeError{
+//		StatusCode:   http.StatusUnprocessableEntity,
+//		ErrorMessage: &[]string{v2.ConcurrencyErrorMessage}[0],
+//		Description:  &[]string{v2.ConcurrencyErrorDescription}[0],
+//	}
+//}
