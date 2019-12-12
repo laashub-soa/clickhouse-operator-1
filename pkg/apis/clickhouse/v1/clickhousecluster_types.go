@@ -79,6 +79,10 @@ type ShardStatus struct {
 
 // PodPolicy defines the policy for pods owned by ClickHouse operator.
 type PodPolicy struct {
+	// NodeSelector is a selector which must be true for the pod to fit on a node.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	//Describes node affinity scheduling rules for the pod.
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 	// Annotations specifies the annotations to attach to headless service the ClickHouse operator creates
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Tolerations specifies the tolerations to attach to the pods the ClickHouse operator creates

@@ -5,14 +5,12 @@ go 1.13
 require (
 	github.com/GoogleCloudPlatform/k8s-service-catalog v1.0.0-beta.4 // indirect
 	github.com/Masterminds/semver v1.5.0
-	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-openapi/spec v0.19.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/pmorie/go-open-service-broker-client v0.0.0-20190909175253-906fa5f9c249
 	github.com/pmorie/osb-broker-lib v0.0.0-20180516212803-87d71cfbf342
@@ -21,8 +19,6 @@ require (
 	github.com/shawn-hurley/osb-broker-k8s-lib v0.0.0-20180430125558-bed19ac36ffe
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
-	google.golang.org/genproto v0.0.0-20181016170114-94acd270e44e // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

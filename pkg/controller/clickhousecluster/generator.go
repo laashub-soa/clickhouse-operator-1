@@ -260,6 +260,8 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 	if g.cc.Spec.Pod != nil {
 		statefulset.Spec.Template.Annotations = g.cc.Spec.Pod.Annotations
 		statefulset.Spec.Template.Spec.Tolerations = g.cc.Spec.Pod.Tolerations
+		statefulset.Spec.Template.Spec.Affinity = g.cc.Spec.Pod.Affinity
+		statefulset.Spec.Template.Spec.NodeSelector = g.cc.Spec.Pod.NodeSelector
 	}
 	statefulset.Spec.Template.Spec.InitContainers = []corev1.Container{
 		{
