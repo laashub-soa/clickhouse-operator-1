@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-cp -f deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml install/shell/clickhouseclusters_crd.yaml
 cp -f deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml install/helm/clickhouse-operator/templates/clickhouseclusters_crd.yaml
 
 tag=$(git tag -l | tail -n 1)
