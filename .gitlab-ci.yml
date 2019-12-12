@@ -33,7 +33,7 @@ coverage:
         sleep 20;
       done
     - wget -O ~/.kube/config http://localhost:10080/config
-    - kubectl create -f ./install/shell/clickhouseclusters_crd.yaml --namespace clickhouse-system
+    - kubectl create -f ./deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml --namespace clickhouse-system
     - make lint && make coverage
   tags:
     - k8s
@@ -52,13 +52,13 @@ replicated-merge-tree:
         done
       - wget -O ~/.kube/config http://localhost:10080/config
       - helm install --namespace clickhouse-system --name clickhouse-operator ./install/helm/clickhouse-operator --set zookeeperReplicas=1 && sleep 2s
-      - kubectl create namespace test && kubectl create -f ./samples/simple.yaml -n test && sleep 5s
+      - kubectl create namespace test && kubectl create -f ./samples/user-defined-pod-affinity.yaml -n test && sleep 5s
       - >
         while true;do
-          phase=$(kubectl get chc simple -n test -o jsonpath='{.status.phase}')
+          phase=$(kubectl get chc user-defined-affinity -n test -o jsonpath='{.status.phase}')
           if [ "${phase}" = "Running" ];then
             break
           fi
         done
-      - bash -x ./tests/e2e/Replicated-Merge-Tree/test.sh simple test
+      - bash -x ./tests/e2e/Replicated-Merge-Tree/test.sh user-defined-affinity test
 

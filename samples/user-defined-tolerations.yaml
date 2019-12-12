@@ -1,7 +1,7 @@
 apiVersion: clickhouse.service.diamond.sensetime.com/v1
 kind: ClickHouseCluster
 metadata:
-  name: user-defined-pod
+  name: user-defined-tolerations
   namespace: test
 spec:
   shardsCount: 1

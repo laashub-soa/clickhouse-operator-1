@@ -1,0 +1,21 @@
+apiVersion: clickhouse.service.diamond.sensetime.com/v1
+kind: ClickHouseCluster
+metadata:
+  name: user-defined-affinity
+  namespace: test
+spec:
+  shardsCount: 1
+  replicasCount: 2
+  pod:
+    affinity:
+      podAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+              topologyKey: kubernetes.io/hostname
