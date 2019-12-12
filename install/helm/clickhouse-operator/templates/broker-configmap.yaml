@@ -11,6 +11,7 @@ data:
     default_config:
       - /etc/clickhouse-operator/01-clickhouse-listen.xml
       - /etc/clickhouse-operator/02-clickhouse-logger.xml
+      - /etc/clickhouse-operator/03-clickhouse-others.xml
     default_shard_count: 1
     default_replicas_count: 1
     default_data_capacity: 10Gi
@@ -32,12 +33,37 @@ data:
     <yandex>
         <logger>
             <!-- Possible levels: https://github.com/pocoproject/poco/blob/develop/Foundation/include/Poco/Logger.h#L105 -->
-            <level>trace</level>
+            <level>information</level>
             <log>/var/log/clickhouse-server/clickhouse-server.log</log>
             <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
-            <size>1000M</size>
-            <count>10</count>
+            <size>2048M</size>
+            <count>20</count>
             <!-- Default behavior is autodetection (log to console if not daemon mode and is tty) -->
             <console>1</console>
         </logger>
+    </yandex>
+  03-clickhouse-others.xml: |-
+    <yandex>
+        <timezone>Asia/Shanghai</timezone>
+        <keep_alive_timeout>10</keep_alive_timeout>
+
+        <mark_cache_size>10737418240</mark_cache_size>
+        <uncompressed_cache_size>8589934592</uncompressed_cache_size>
+
+        <max_concurrent_queries>2000</max_concurrent_queries>
+        <max_connections>32768</max_connections>
+        <max_open_files>1048576</max_open_files>
+
+        <max_table_size_to_drop>0</max_table_size_to_drop>
+        <merge_tree>
+           <max_suspicious_broken_parts>5</max_suspicious_broken_parts>
+        </merge_tree>
+        <dictionaries_lazy_load>true</dictionaries_lazy_load>
+        <part_log>
+            <database>system</database>
+            <table>part_log</table>
+            <partition_by>toYYYYMM(event_date)</partition_by>
+            <flush_interval_milliseconds>10000</flush_interval_milliseconds>
+        </part_log>
+        <use_minimalistic_part_header_in_zookeeper>1</use_minimalistic_part_header_in_zookeeper>
     </yandex>
