@@ -6,7 +6,7 @@ metadata:
 data:
   config.yaml: |-
     default_clickhouse_image: "registry.sensetime.com/diamond/service-providers/clickhouse-server:v19.16.2.2"
-    default_clickhouse_init_image: "registry.sensetime.com/diamond/service-providers/clickhouse-init:{{ .Values.image.tag }"
+    default_clickhouse_init_image: "registry.sensetime.com/diamond/service-providers/clickhouse-init:{{ .Values.image.tag }}"
     default_clickhouse_exporter_image: "registry.sensetime.com/diamond/service-providers/clickhouse-exporter:v0.2.0"
     default_config:
       - /etc/clickhouse-operator/01-clickhouse-listen.xml
