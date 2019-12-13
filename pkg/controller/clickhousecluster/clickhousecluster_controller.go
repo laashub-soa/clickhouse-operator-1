@@ -141,11 +141,11 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return requeue5, err
 	}
 
-	//userConfigMap := generator.generateUserConfigMap()
-	//if err := r.reconcileConfigMap(userConfigMap); err != nil {
-	//	logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create user configmap error")
-	//	return err
-	//}
+	userConfigMap := generator.generateUserConfigMap()
+	if err := r.reconcileConfigMap(userConfigMap); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create user configmap error")
+		return requeue5, err
+	}
 
 	for shardID := 0; shardID < int(cc.Spec.ShardsCount); shardID++ {
 		var ready bool
@@ -509,6 +509,10 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 	}
 	if c.Spec.CustomSettings == "" {
 		c.Spec.CustomSettings = "<yandex></yandex>"
+		changed = true
+	}
+	if c.Spec.Users == "" {
+		c.Spec.Users = "<yandex></yandex>"
 		changed = true
 	}
 	if c.Spec.Resources.Limits == (clickhousev1.CPUAndMem{}) {

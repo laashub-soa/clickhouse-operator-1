@@ -29,12 +29,12 @@ const (
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
-	//filenameUsersXML         = "users.xml"
+	filenameUsersXML         = "users.xml"
 	filenameZookeeperXML = "zookeeper.xml"
 	filenameSettingsXML  = "settings.xml"
 
 	dirPathConfigd = "/etc/clickhouse-server/config.d/"
-	//dirPathUsersd  = "/etc/clickhouse-server/users.d/"
+	dirPathUsersd  = "/etc/clickhouse-server/users.d/"
 	dirPathConfd = "/etc/clickhouse-server/conf.d/"
 	dirPathData  = "/var/lib/clickhouse/"
 
@@ -160,6 +160,10 @@ func (g *Generator) generateAllMacrosJson() string {
 	return string(out)
 }
 
+func (g *Generator) generateUsersXMl() string {
+	return g.cc.Spec.Users
+}
+
 func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 
 	data := map[string]string{
@@ -185,6 +189,9 @@ func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 }
 
 func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
+	data := map[string]string{
+		filenameUsersXML: g.generateUsersXMl(),
+	}
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.userConfigMapName(),
@@ -193,7 +200,7 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 			OwnerReferences: g.ownerReference(),
 		},
 		// Data contains several sections which are to be several xml chopConfig files
-		Data: map[string]string{},
+		Data: data,
 	}
 }
 
@@ -363,7 +370,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 		statefulset.Spec.Template.Spec.Volumes,
 		newVolumeForConfigMap(g.commonConfigMapName()),
 		newVolumeForEmptyDir(g.marosEmptyDirName()),
-		//newVolumeForConfigMap(g.userConfigMapName()),
+		newVolumeForConfigMap(g.userConfigMapName()),
 	)
 
 	// And reference these Volumes in each Container via VolumeMount
@@ -379,7 +386,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			container.VolumeMounts,
 			newVolumeMount(g.commonConfigMapName(), dirPathConfigd),
 			newVolumeMount(g.marosEmptyDirName(), dirPathConfd),
-			//newVolumeMount(g.userConfigMapName(), dirPathUsersd),
+			newVolumeMount(g.userConfigMapName(), dirPathUsersd),
 		)
 	}
 
