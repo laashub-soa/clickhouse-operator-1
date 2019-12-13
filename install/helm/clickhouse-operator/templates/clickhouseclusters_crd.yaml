@@ -31,6 +31,9 @@ spec:
         spec:
           description: ClickHouseClusterSpec defines the desired state of ClickHouseCluster
           properties:
+            custom_settings:
+              description: Custom defined XML settings, like <yandex>something</yandex>
+              type: string
             dataCapacity:
               description: The storage capacity
               type: string
@@ -742,6 +745,9 @@ spec:
               description: Shards count
               format: int32
               type: integer
+            users:
+              description: Users defined
+              type: string
             zookeeper:
               description: Zookeeper config
               properties:

@@ -109,9 +109,16 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 							Ref:         ref("github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1.ZookeeperConfig"),
 						},
 					},
-					"CustomSettings": {
+					"custom_settings": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Custom defined XML settings, like <yandex>somethine</yandex>",
+							Description: "Custom defined XML settings, like <yandex>something</yandex>",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"users": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Users defined",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -142,7 +149,6 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"CustomSettings"},
 			},
 		},
 		Dependencies: []string{
