@@ -15,8 +15,8 @@ metadata:
   name: simple
   namespace: test
 spec:
-  baseImage: registry.sensetime.com/diamond/service-providers/clickhouse:latest
-  bootstrapImage: registry.sensetime.com/diamond/clickhouse-bootstrap:latest
+  image: registry.sensetime.com/diamond/service-providers/clickhouse:latest
+  initImage: registry.sensetime.com/diamond/clickhouse-bootstrap:latest
   shardsCount: 1
   replicasCount: 2
 ```
@@ -25,11 +25,17 @@ Each field is described as follows:
 
 | Field              |                                 Describe                                 |
 | ------------------ | :----------------------------------------------------------------------: |
-| `baseImage`        |              Base image to use for a Clickhouse deployment               |
-| `bootstrapImage`   |                   Image used for bootstrapping cluster                   |
+| `image`            |              Base image to use for a Clickhouse deployment               |
+| `initImage`        |                   Image used for bootstrapping cluster                   |
 | `dataCapacity`     |  Define the Capacity for Persistent Volume Claims in the local storage   |
 | `dataStorageClass` |  Define StorageClass for Persistent Volume Claims in the local storage   |
 | `deletePVC`        | DeletePVC defines if the PVC must be deleted when the cluster is deleted |
+| `shardsCount`      |                               Shards count                               |
+| `replicasCount`    |                        clickhouse Replicas count                         |
+| `zookeeper`        |                             Zookeeper config                             |
+| `users`            |                              Users defined                               |
+| `pod`              |                                POD config                                |
+| `resources`        |      Pod defines the policy for pods owned by clickhouse operator.       |
 
 Create clickhouse instance
 
@@ -46,3 +52,5 @@ NAME                         READY   STATUS    RESTARTS   AGE
 clickhouse-demo-dc1-rack1-0   1/1     Running   0          36m
 clickhouse-demo-dc1-rack2-0   1/1     Running   0          35m
 ```
+
+More examples can be find in [samples](http://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse/tree/master/samples)
