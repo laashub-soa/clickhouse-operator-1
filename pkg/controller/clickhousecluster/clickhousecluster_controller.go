@@ -137,13 +137,19 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 
 	commonConfigMap := generator.GenerateCommonConfigMap()
 	if err := r.reconcileConfigMap(commonConfigMap); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": commonConfigMap.Namespace, "name": commonConfigMap.Name, "error": err}).Error("create command configmap error")
+		logrus.WithFields(logrus.Fields{"namespace": commonConfigMap.Namespace, "name": commonConfigMap.Name, "error": err}).Error("create common configmap error")
+		return requeue5, err
+	}
+
+	commonService := generator.generateCommonService()
+	if err := r.reconcileService(commonService); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": commonService.Namespace, "name": commonService.Name, "error": err}).Error("create common service error")
 		return requeue5, err
 	}
 
 	userConfigMap := generator.generateUserConfigMap()
 	if err := r.reconcileConfigMap(userConfigMap); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create user configmap error")
+		logrus.WithFields(logrus.Fields{"namespace": userConfigMap.Namespace, "name": userConfigMap.Name, "error": err}).Error("create users configmap error")
 		return requeue5, err
 	}
 
@@ -306,7 +312,7 @@ func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardI
 		return false, err
 	}
 
-	service := generator.generateService(shardID, statefulSet)
+	service := generator.generateShardService(shardID, statefulSet)
 	if err := r.reconcileService(service); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": service.Namespace, "name": service.Name, "error": err}).Error("create service error")
 		return false, err
