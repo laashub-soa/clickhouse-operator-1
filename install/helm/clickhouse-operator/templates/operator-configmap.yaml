@@ -17,7 +17,7 @@ data:
     default_data_capacity: 10Gi
     default_zookeeper:
       nodes:
-        - host: zookeeper.clickhouse-system
+        - host: zookeeper.{{ .Release.Namespace }}
           port: 2181
       session_timeout_ms: 30000
       operation_timeout_ms: 10000

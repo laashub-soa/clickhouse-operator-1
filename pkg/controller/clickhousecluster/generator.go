@@ -93,6 +93,10 @@ func (g *Generator) commonConfigMapName() string {
 	return fmt.Sprintf("clickhouse-%s-common-config", g.cc.Name)
 }
 
+func (g *Generator) commonServiceName() string {
+	return fmt.Sprintf("clickhouse-%s", g.cc.Name)
+}
+
 func (g *Generator) userConfigMapName() string {
 	return fmt.Sprintf("clickhouse-%s-user-config", g.cc.Name)
 }
@@ -204,7 +208,51 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 	}
 }
 
-func (g *Generator) generateService(shardID int, statefulset *appsv1.StatefulSet) *corev1.Service {
+func (g *Generator) generateCommonService() *corev1.Service{
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      g.commonServiceName(),
+			Namespace: g.cc.Namespace,
+			Labels:    g.labelsForCluster(),
+			OwnerReferences: g.ownerReference(),
+		},
+		Spec: corev1.ServiceSpec{
+			// ClusterIP: templateDefaultsServiceClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:     chDefaultHTTPPortName,
+					Port:     chDefaultHTTPPortNumber,
+					Protocol: "TCP",
+					TargetPort: intstr.IntOrString{
+						IntVal: chDefaultHTTPPortNumber,
+					},
+				},
+				{
+					Name:     chDefaultClientPortName,
+					Port:     chDefaultClientPortNumber,
+					Protocol: "TCP",
+					TargetPort: intstr.IntOrString{
+						IntVal: chDefaultClientPortNumber,
+					},
+				},
+				{
+					Name:     chDefaultExporterPortName,
+					Port:     chDefaultExporterPortNumber,
+					Protocol: "TCP",
+					TargetPort: intstr.IntOrString{
+						IntVal: chDefaultExporterPortNumber,
+					},
+				},
+			},
+			Selector:        g.labelsForCluster(),
+			ClusterIP:       "None",
+			SessionAffinity: "None",
+			Type:            "ClusterIP",
+		},
+	}
+}
+
+func (g *Generator) generateShardService(shardID int, statefulset *appsv1.StatefulSet) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      g.serviceName(shardID),
