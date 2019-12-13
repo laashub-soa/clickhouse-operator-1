@@ -15,8 +15,6 @@ metadata:
   name: simple
   namespace: test
 spec:
-  image: registry.sensetime.com/diamond/service-providers/clickhouse:latest
-  initImage: registry.sensetime.com/diamond/clickhouse-bootstrap:latest
   shardsCount: 1
   replicasCount: 2
 ```
