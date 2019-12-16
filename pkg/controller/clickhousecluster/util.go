@@ -95,7 +95,6 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 	sts1.Spec.UpdateStrategy = sts2.Spec.UpdateStrategy
 
 	if !apiequality.Semantic.DeepEqual(sts1.Spec, sts2.Spec) {
-		logrus.Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))
 		logrus.WithFields(logrus.Fields{"statefulset": sts1.Name,
 			"namespace": sts1.Namespace}).Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))
 
