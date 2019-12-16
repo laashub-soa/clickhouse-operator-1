@@ -2,7 +2,7 @@
 ##
 image:
   repository: registry.sensetime.com/diamond/service-providers/clickhouse-operator
-  tag: v0.3.0
+  tag: v0.4.0
   pullPolicy: Always
   imagePullSecrets:
     enabled: false
@@ -32,6 +32,12 @@ metricService: false
 ## If true, create & deploy the zookeeper
 zookeeperEnable: true
 zookeeperReplicas: 3
+
+operatorNodeSelector:
+  kubernetes.io/os: linux
+
+zookeeperNodeSelector:
+  kubernetes.io/os: linux
 
 debug:
   enabled: false

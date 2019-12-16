@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mackwong/clickhouse-operator/pkg/config"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"reflect"
@@ -134,6 +135,12 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	}
 
 	var generator = NewGenerator(r, cc)
+
+	roleBinding := generator.GenerateRoleBinding()
+	if err := r.reconcileRoleBinding(roleBinding); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": roleBinding.Namespace, "name": roleBinding.Name, "error": err}).Error("create clusterRoleBinding error")
+		return requeue5, err
+	}
 
 	commonConfigMap := generator.GenerateCommonConfigMap()
 	if err := r.reconcileConfigMap(commonConfigMap); err != nil {
@@ -400,6 +407,20 @@ func (r *ReconcileClickHouseCluster) reconcileService(service *corev1.Service) e
 	// You can specify your own cluster IP address as part of a Service creation request. To do this, set the .spec.clusterIP
 	service.Spec.ClusterIP = curService.Spec.ClusterIP
 	return r.client.Update(context.TODO(), service)
+}
+
+func (r *ReconcileClickHouseCluster) reconcileRoleBinding(roleBinding *rbacv1.RoleBinding) error {
+	var curRoleBinding rbacv1.RoleBinding
+	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Name}, &curRoleBinding)
+	// Object with such name does not exist or error happened
+	if err != nil && apierrors.IsNotFound(err) {
+		// Object with such name not found - create it
+		logrus.WithFields(logrus.Fields{
+			"roleBinding": roleBinding.Name,
+			"namespace":          roleBinding.Namespace}).Info("Create RoleBinding")
+		return r.client.Create(context.TODO(), roleBinding)
+	}
+	return err
 }
 
 func (r *ReconcileClickHouseCluster) reconcileConfigMap(configMap *corev1.ConfigMap) error {

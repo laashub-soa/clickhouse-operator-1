@@ -33,6 +33,12 @@ rules:
   verbs:
   - "*"
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - rolebindings
+  verbs: ["*"]
+- apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
@@ -70,6 +76,14 @@ rules:
     - poddisruptionbudgets
   verbs:
     - "*"
+- apiGroups:
+    - policy
+  resourceNames:
+    - clickhouse-operator
+  resources:
+    - podsecuritypolicies
+  verbs:
+    - use
 - apiGroups:
   - monitoring.coreos.com
   resources:

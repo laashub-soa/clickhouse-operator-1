@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -30,13 +31,15 @@ const (
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
 	filenameUsersXML         = "users.xml"
-	filenameZookeeperXML = "zookeeper.xml"
-	filenameSettingsXML  = "settings.xml"
+	filenameZookeeperXML     = "zookeeper.xml"
+	filenameSettingsXML      = "settings.xml"
 
 	dirPathConfigd = "/etc/clickhouse-server/config.d/"
 	dirPathUsersd  = "/etc/clickhouse-server/users.d/"
-	dirPathConfd = "/etc/clickhouse-server/conf.d/"
-	dirPathData  = "/var/lib/clickhouse/"
+	dirPathConfd   = "/etc/clickhouse-server/conf.d/"
+	dirPathData    = "/var/lib/clickhouse/"
+
+	pspName = "clickhouse-operator"
 
 	macrosTemplate = `
 <yandex>
@@ -95,6 +98,10 @@ func (g *Generator) commonConfigMapName() string {
 
 func (g *Generator) commonServiceName() string {
 	return fmt.Sprintf("clickhouse-%s", g.cc.Name)
+}
+
+func (g *Generator) PspRoleBindingName() string {
+	return fmt.Sprintf("clickhouse-psp-%s", g.cc.Name)
 }
 
 func (g *Generator) userConfigMapName() string {
@@ -168,6 +175,29 @@ func (g *Generator) generateUsersXMl() string {
 	return g.cc.Spec.Users
 }
 
+func (g *Generator) GenerateRoleBinding() *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: g.PspRoleBindingName(),
+			Namespace: g.cc.Namespace,
+			Labels:          g.labelsForCluster(),
+			OwnerReferences: g.ownerReference(),
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Namespace: g.cc.Namespace,
+				Name:      "default",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     pspName,
+		},
+	}
+}
+
 func (g *Generator) GenerateCommonConfigMap() *corev1.ConfigMap {
 
 	data := map[string]string{
@@ -208,12 +238,12 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 	}
 }
 
-func (g *Generator) generateCommonService() *corev1.Service{
+func (g *Generator) generateCommonService() *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      g.commonServiceName(),
-			Namespace: g.cc.Namespace,
-			Labels:    g.labelsForCluster(),
+			Name:            g.commonServiceName(),
+			Namespace:       g.cc.Namespace,
+			Labels:          g.labelsForCluster(),
 			OwnerReferences: g.ownerReference(),
 		},
 		Spec: corev1.ServiceSpec{
@@ -384,6 +414,8 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 						"SYS_NICE",
 					},
 				},
+				Privileged: &[]bool{true}[0],
+				ProcMount:  &[]corev1.ProcMountType{"Default"}[0],
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: generateResourceList(g.cc.Spec.Resources.Requests),
