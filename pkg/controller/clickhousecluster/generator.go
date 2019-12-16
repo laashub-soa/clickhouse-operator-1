@@ -175,8 +175,8 @@ func (g *Generator) generateUsersXMl() string {
 	return g.cc.Spec.Users
 }
 
-func (g *Generator) GenerateRoleBinding() *rbacv1.ClusterRoleBinding {
-	return &rbacv1.ClusterRoleBinding{
+func (g *Generator) GenerateRoleBinding() *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: g.PspRoleBindingName(),
 			Namespace: g.cc.Namespace,

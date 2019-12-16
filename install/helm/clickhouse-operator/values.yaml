@@ -33,6 +33,12 @@ metricService: false
 zookeeperEnable: true
 zookeeperReplicas: 3
 
+operatorNodeSelector:
+  kubernetes.io/os: linux
+
+zookeeperNodeSelector:
+  kubernetes.io/os: linux
+
 debug:
   enabled: false
 

@@ -31,6 +31,8 @@ spec:
 {{- end }}
       securityContext:
         runAsUser: 1000
+      nodeSelector:
+{{ toYaml .Values.operatorNodeSelector | indent 10 }}
       containers:
       - name: {{ template "clickhouse-operator.name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

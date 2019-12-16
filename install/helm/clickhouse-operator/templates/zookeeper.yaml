@@ -57,6 +57,8 @@ spec:
       labels:
         app: zk
     spec:
+      nodeSelector:
+{{ toYaml .Values.zookeeperNodeSelector | indent 10 }}
       containers:
         - name: kubernetes-zookeeper
           imagePullPolicy: Always
