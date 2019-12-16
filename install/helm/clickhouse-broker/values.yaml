@@ -2,7 +2,7 @@
 # Image to use
 image:
   repository: registry.sensetime.com/diamond/service-providers/clickhouse-broker
-  tag: v0.3.0
+  tag: v0.4.0
   pullPolicy: Always
 # ImagePullPolicy; valid values are "IfNotPresent", "Never", and "Always"
 imagePullPolicy: Always
