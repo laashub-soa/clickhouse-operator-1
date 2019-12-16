@@ -384,6 +384,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 						"SYS_NICE",
 					},
 				},
+				Privileged:&[]bool{true}[0],
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: generateResourceList(g.cc.Spec.Resources.Requests),
