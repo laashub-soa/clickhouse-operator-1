@@ -1,9 +1,6 @@
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  annotations:
-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: docker/default
-    seccomp.security.alpha.kubernetes.io/defaultProfileName: docker/default
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
     kubernetes.io/cluster-service: "true"
@@ -11,62 +8,20 @@ metadata:
 spec:
   allowPrivilegeEscalation: true
   allowedCapabilities:
-    - IPC_LOCK
+    - '*'
   fsGroup:
-    ranges:
-      - max: 65535
-        min: 1
-    rule: MustRunAs
-  requiredDropCapabilities:
-    - AUDIT_CONTROL
-    - AUDIT_READ
-    - AUDIT_WRITE
-    - BLOCK_SUSPEND
-    - CHOWN
-    - DAC_OVERRIDE
-    - DAC_READ_SEARCH
-    - FOWNER
-    - FSETID
-    - IPC_OWNER
-    - KILL
-    - LEASE
-    - LINUX_IMMUTABLE
-    - MAC_ADMIN
-    - MAC_OVERRIDE
-    - MKNOD
-    - NET_ADMIN
-    - NET_BIND_SERVICE
-    - NET_BROADCAST
-    - NET_RAW
-    - SETGID
-    - SETFCAP
-    - SETPCAP
-    - SETUID
-    - SYS_ADMIN
-    - SYS_BOOT
-    - SYS_CHROOT
-    - SYS_MODULE
-    - SYS_NICE
-    - SYS_PACCT
-    - SYS_PTRACE
-    - SYS_RAWIO
-    - SYS_TIME
-    - SYS_TTY_CONFIG
-    - SYSLOG
-    - WAKE_ALARM
+    rule: RunAsAny
+  hostIPC: true
+  hostPID: true
+  hostPorts:
+    - max: 65535
+      min: 0
+  privileged: true
   runAsUser:
-    rule: MustRunAsNonRoot
+    rule: RunAsAny
   seLinux:
     rule: RunAsAny
   supplementalGroups:
-    ranges:
-      - max: 65535
-        min: 1
-    rule: MustRunAs
+    rule: RunAsAny
   volumes:
-    - configMap
-    - emptyDir
-    - projected
-    - secret
-    - downwardAPI
-    - persistentVolumeClaim
+    - '*'

@@ -137,8 +137,8 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	var generator = NewGenerator(r, cc)
 
 	roleBinding := generator.GenerateRoleBinding()
-	if err := r.reconcileRoleBinding(roleBinding); err != nil {
-		logrus.WithFields(logrus.Fields{"namespace": roleBinding.Namespace, "name": roleBinding.Name, "error": err}).Error("create roleBinding error")
+	if err := r.reconcileClusterRoleBinding(roleBinding); err != nil {
+		logrus.WithFields(logrus.Fields{"namespace": roleBinding.Namespace, "name": roleBinding.Name, "error": err}).Error("create clusterRoleBinding error")
 		return requeue5, err
 	}
 
@@ -409,8 +409,8 @@ func (r *ReconcileClickHouseCluster) reconcileService(service *corev1.Service) e
 	return r.client.Update(context.TODO(), service)
 }
 
-func (r *ReconcileClickHouseCluster) reconcileRoleBinding(roleBinding *rbacv1.RoleBinding) error {
-	var curRoleBinding rbacv1.RoleBinding
+func (r *ReconcileClickHouseCluster) reconcileClusterRoleBinding(roleBinding *rbacv1.ClusterRoleBinding) error {
+	var curRoleBinding rbacv1.ClusterRoleBinding
 	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Name}, &curRoleBinding)
 	// Object with such name does not exist or error happened
 	if err != nil && apierrors.IsNotFound(err) {
