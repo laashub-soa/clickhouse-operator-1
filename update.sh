@@ -3,7 +3,7 @@ set -e
 
 cp -f deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml install/helm/clickhouse-operator/templates/clickhouseclusters_crd.yaml
 
-tag=$(git tag -l | tail -n 1)
+tag=$(git tag --sort=committerdate | tail -n 1)
 os=`uname`
 
 if [ ${os} = "Darwin" ];then

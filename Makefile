@@ -3,7 +3,7 @@
 IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-operator
 INIT_IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-init
 BROKER_IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-broker
-TAG ?= $(shell git tag | tail -n 1)
+TAG ?= $(shell git tag --sort=committerdate | tail -n 1)
 PULL ?= Always
 
 lint: ## Run all the linters
