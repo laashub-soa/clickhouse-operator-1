@@ -77,6 +77,9 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 
 		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePath = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePath
 		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePolicy = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePolicy
+
+		sts1.Spec.Template.Spec.Containers[i].SecurityContext = sts2.Spec.Template.Spec.Containers[i].SecurityContext
+		sts1.Spec.Template.Spec.Containers[i].Resources = sts2.Spec.Template.Spec.Containers[i].Resources
 	}
 
 	for i := 0; i < len(sts1.Spec.Template.Spec.InitContainers); i++ {
@@ -97,7 +100,6 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 	if !apiequality.Semantic.DeepEqual(sts1.Spec, sts2.Spec) {
 		logrus.WithFields(logrus.Fields{"statefulset": sts1.Name,
 			"namespace": sts1.Namespace}).Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))
-
 		return false
 	}
 
