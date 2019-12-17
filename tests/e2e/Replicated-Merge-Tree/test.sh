@@ -42,7 +42,8 @@ do
   host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
   counter_id=$(kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}");
   if [ "${counter_id}" != "12345" ];then
-    echo "counter_id is not 12345"
+    echo "counter_id is not 12345, test failed!"
     exit 1
   fi
+  echo "test OK!"
 done
