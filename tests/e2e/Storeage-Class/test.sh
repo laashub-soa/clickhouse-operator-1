@@ -13,7 +13,6 @@ wait_for_chc_ready "${clickhouse_cluster}" "${namespace}"
 
 statefulsets=$(get_statefulsets_from_chc "${clickhouse_cluster}" "${namespace}")
 
-query=$(cat "${CWD}"/table.sql)
 for statefulset in ${statefulsets};
 do
   ready_num=$(kubectl get statefulset "${statefulset}" --namespace "${namespace}" -o jsonpath='{.status.readyReplicas}')
@@ -22,28 +21,31 @@ do
   do
     pod_name="${statefulset}"-$i
     host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
-    kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" --query="create database if not exists test";
+
+    query="create database if not exists test"
+    kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" --query="${query}";
+
+    query=$(cat "${CWD}"/table.sql)
     kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}";
+
+    query="insert into test_table(CounterID, UserID) values($i, 9527)"
+    kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}";
+
+    sleep 1s
+    kubectl delete pod "$pod_name" --namespace "${namespace}" --force --grace-peirod=0
   done
 done
 
-query="insert into test_table(CounterID, UserID) values(12345, 9527)"
-for statefulset in ${statefulsets};
-do
-  pod_name="${statefulset}"-0
-  host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
-  kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}";
-done
+wait_for_chc_ready "${clickhouse_cluster}" "${namespace}"
 
 query="select CounterID from test_table where UserID=9527"
 for statefulset in ${statefulsets};
 do
-  pod_name="${statefulset}"-1
+  pod_name="${statefulset}"-$i
   host="$pod_name"."${statefulset}"."${namespace}".svc.cluster.local
   counter_id=$(kubectl exec "$pod_name" --namespace "${namespace}" -c clickhouse -- clickhouse-client -h "$host" -d test --query="${query}");
-  if [ "${counter_id}" != "12345" ];then
-    echo "counter_id is not 12345, test failed!"
+  if [ "${counter_id}" != "$i" ];then
+    echo "counter_id is not $i"
     exit 1
   fi
-  echo "test OK!"
 done

@@ -2,8 +2,8 @@
 - name: clickhouse
   id: "558888d1-f00a-3176-01e4-05cd2d68eb18"
   description: "Provide clickhouse as a service through Open service Broker!"
-  bindable: true
-  planupdatable: true
+  bindable: false
+  planupdatable: false
   metadata:
     display_name: clickhouse service
     image_url: http://gitlab.bj.sensetime.com/uploads/-/system/project/avatar/10933/clickhouse-logo.png
