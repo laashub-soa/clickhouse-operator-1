@@ -45,6 +45,12 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: DEPLOYMENT_NAME
+          value: {{ template "clickhouse-operator.fullname" . }}
         - name: OPERATOR_NAME
           value: "clickhouse-operator"
 {{- if .Values.debug }}
