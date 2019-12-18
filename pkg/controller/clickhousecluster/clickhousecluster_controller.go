@@ -417,7 +417,7 @@ func (r *ReconcileClickHouseCluster) reconcileRoleBinding(roleBinding *rbacv1.Ro
 		// Object with such name not found - create it
 		logrus.WithFields(logrus.Fields{
 			"roleBinding": roleBinding.Name,
-			"namespace":          roleBinding.Namespace}).Info("Create RoleBinding")
+			"namespace":   roleBinding.Namespace}).Info("Create RoleBinding")
 		return r.client.Create(context.TODO(), roleBinding)
 	}
 	return err
