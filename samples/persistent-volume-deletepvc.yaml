@@ -7,5 +7,5 @@ spec:
   deletePVC: true
   shardsCount: 2
   replicasCount: 1
-  dataStorageClass: local-storage
-  dataCapacity: 100m
+  dataStorageClass: local-dynamic
+  dataCapacity: 1Gi
