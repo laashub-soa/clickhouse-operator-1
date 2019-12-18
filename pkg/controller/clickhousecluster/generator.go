@@ -178,8 +178,8 @@ func (g *Generator) generateUsersXMl() string {
 func (g *Generator) GenerateRoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: g.PspRoleBindingName(),
-			Namespace: g.cc.Namespace,
+			Name:            g.PspRoleBindingName(),
+			Namespace:       g.cc.Namespace,
 			Labels:          g.labelsForCluster(),
 			OwnerReferences: g.ownerReference(),
 		},
