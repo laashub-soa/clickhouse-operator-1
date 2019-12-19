@@ -30,13 +30,17 @@ rbacEnable: true
 metricService: false
 
 ## If true, create & deploy the zookeeper
-zookeeperEnable: true
-zookeeperReplicas: 3
+zookeeperConfig:
+  enable: true
+  replicas: 3
+  nodeSelector:
+    kubernetes.io/os: linux
+  StoreageClass:
+    enable: false
+    storageClassName: local-dynamic
+    storage: 2Gi
 
 operatorNodeSelector:
-  kubernetes.io/os: linux
-
-zookeeperNodeSelector:
   kubernetes.io/os: linux
 
 debug:

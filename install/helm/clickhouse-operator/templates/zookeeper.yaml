@@ -1,4 +1,4 @@
-{{ if .Values.zookeeperEnable }}
+{{ if .Values.zookeeperConfig.enable }}
 ---
 apiVersion: v1
 kind: Service
@@ -48,7 +48,7 @@ spec:
     matchLabels:
       app: zk
   serviceName: zk-hs
-  replicas: {{ .Values.zookeeperReplicas }}
+  replicas: {{ .Values.zookeeperConfig.replicas }}
   updateStrategy:
     type: RollingUpdate
   podManagementPolicy: OrderedReady
@@ -58,15 +58,15 @@ spec:
         app: zk
     spec:
       nodeSelector:
-{{ toYaml .Values.zookeeperNodeSelector | indent 10 }}
+{{ toYaml .Values.zookeeperConfig.nodeSelector | indent 10 }}
       containers:
         - name: kubernetes-zookeeper
           imagePullPolicy: Always
           image: registry.sensetime.com/diamond/kubernetes-zookeeper:1.0-3.4.10
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "0.2"
+              memory: "2Gi"
+              cpu: "0.5"
           ports:
             - containerPort: 2181
               name: client
@@ -78,23 +78,23 @@ spec:
             - sh
             - -c
             - "start-zookeeper \
-          --servers={{ .Values.zookeeperReplicas }} \
-          --data_dir=/var/lib/zookeeper/data \
-          --data_log_dir=/var/lib/zookeeper/data/log \
-          --conf_dir=/opt/zookeeper/conf \
-          --client_port=2181 \
-          --election_port=3888 \
-          --server_port=2888 \
-          --tick_time=2000 \
-          --init_limit=10 \
-          --sync_limit=5 \
-          --heap=512M \
-          --max_client_cnxns=60 \
-          --snap_retain_count=3 \
-          --purge_interval=12 \
-          --max_session_timeout=40000 \
-          --min_session_timeout=4000 \
-          --log_level=INFO"
+            --servers={{ .Values.zookeeperConfig.replicas }} \
+            --data_dir=/var/lib/zookeeper/data \
+            --data_log_dir=/var/lib/zookeeper/data/log \
+            --conf_dir=/opt/zookeeper/conf \
+            --client_port=2181 \
+            --election_port=3888 \
+            --server_port=2888 \
+            --tick_time=2000 \
+            --init_limit=10 \
+            --sync_limit=5 \
+            --heap=512M \
+            --max_client_cnxns=60 \
+            --snap_retain_count=3 \
+            --purge_interval=12 \
+            --max_session_timeout=40000 \
+            --min_session_timeout=4000 \
+            --log_level=INFO"
           readinessProbe:
             exec:
               command:
@@ -111,7 +111,24 @@ spec:
                 - "zookeeper-ready 2181"
             initialDelaySeconds: 10
             timeoutSeconds: 5
+  {{ if .Values.zookeeperConfig.StoreageClass.enable }}
+          volumeMounts:
+            - mountPath: /var/lib/zookeeper/data
+              name: zookeeper-volume-claim
+  {{- end }}
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
+{{ if .Values.zookeeperConfig.StoreageClass.enable }}
+  volumeClaimTemplates:
+    - metadata:
+        name: zookeeper-volume-claim
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.zookeeperConfig.StoreageClass.storage }}
+        storageClassName: {{ .Values.zookeeperConfig.StoreageClass.storageClassName }}
+{{- end }}
 {{- end }}
