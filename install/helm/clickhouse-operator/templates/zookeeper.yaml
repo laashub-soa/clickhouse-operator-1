@@ -111,9 +111,11 @@ spec:
                 - "zookeeper-ready 2181"
             initialDelaySeconds: 10
             timeoutSeconds: 5
+  {{ if .Values.zookeeperConfig.StoreageClass.enable }}
           volumeMounts:
             - mountPath: /var/lib/zookeeper/data
               name: zookeeper-volume-claim
+  {{- end }}
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
