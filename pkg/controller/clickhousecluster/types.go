@@ -16,6 +16,8 @@ const (
 	ShardIDLabelKey  = "shard-id"
 	CreateByLabelKey = "created-by"
 	ClusterLabelKey  = "clickhouse-cluster"
+
+	OperatorLabelKey = "clickhouse-operator"
 )
 
 type Replica struct {

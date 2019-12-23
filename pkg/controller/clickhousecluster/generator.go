@@ -62,7 +62,7 @@ func NewGenerator(rcc *ReconcileClickHouseCluster, cc *clickhousev1.ClickHouseCl
 
 func (g *Generator) labelsForStatefulSet(shardID int, chcLabels map[string]string) map[string]string {
 	labels := map[string]string{
-		CreateByLabelKey: "clickhouse-operator",
+		CreateByLabelKey: OperatorLabelKey,
 		ClusterLabelKey:  g.cc.Name,
 		ShardIDLabelKey:  fmt.Sprintf("%d", shardID),
 	}

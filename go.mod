@@ -3,8 +3,8 @@ module github.com/mackwong/clickhouse-operator
 go 1.13
 
 require (
-	github.com/GoogleCloudPlatform/k8s-service-catalog v1.0.0-beta.4 // indirect
 	github.com/Masterminds/semver v1.5.0
+	github.com/coreos/prometheus-operator v0.29.0
 	github.com/go-openapi/spec v0.19.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/kubernetes-sigs/service-catalog v0.2.2

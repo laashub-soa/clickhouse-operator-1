@@ -39,7 +39,7 @@ all-clean: uninstall## Delete all binary and resources related to clickhouse ser
 
 push: image ## Pushes the image to docker registry
 	docker push "$(IMAGE):$(TAG)"
-	docker push "$(INIT-IMAGE):$(TAG)"
+	docker push "$(INIT_IMAGE):$(TAG)"
 
 deploy-operator: ## Deploys operator with helm
 	helm upgrade --install clickhouse-operator helm/clickhouse-operator --namespace clickhouse-system

@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
+	"os"
 	"runtime"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -12,26 +16,26 @@ import (
 
 	"github.com/mackwong/clickhouse-operator/pkg/apis"
 	"github.com/mackwong/clickhouse-operator/pkg/controller"
+	"github.com/mackwong/clickhouse-operator/pkg/controller/clickhousecluster"
 	"github.com/mackwong/clickhouse-operator/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
-	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Change below variables to serve metrics on different host or port.
 var (
-	metricsHost               = "0.0.0.0"
-	metricsPort         int32 = 8383
-	operatorMetricsPort int32 = 8686
+	metricsHost       = "0.0.0.0"
+	metricsPort int32 = 8383
 )
 
 func printVersion() {
@@ -93,32 +97,9 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	if err = serveCRMetrics(cfg); err != nil {
-		logrus.Info("Could not generate and serve custom resource metrics", "error", err.Error())
-	}
-
-	// Add to the below struct any other metrics ports you want to expose.
-	servicePorts := []v1.ServicePort{
-		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
-		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
-	}
-	// Create Service object to expose the metrics port(s).
-	service, err := metrics.CreateMetricsService(ctx, cfg, servicePorts)
-	if err != nil {
-		logrus.Info("Could not create metrics Service", "error", err.Error())
-	}
-
-	// CreateServiceMonitors will automatically create the prometheus-operator ServiceMonitor resources
-	// necessary to configure Prometheus to scrape metrics from this operator.
-	services := []*v1.Service{service}
-	_, err = metrics.CreateServiceMonitors(cfg, namespace, services)
-	if err != nil {
-		logrus.Info("Could not create ServiceMonitor object", "error", err.Error())
-		// If this operator is deployed to a cluster without the prometheus-operator running, it will return
-		// ErrServiceMonitorNotPresent, which can be used to safely skip ServiceMonitor creation.
-		if err == metrics.ErrServiceMonitorNotPresent {
-			logrus.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects", "error", err.Error())
-		}
+	// Create the prometheus-operator ServiceMonitor resources
+	if err = createServiceMonitor(cfg, os.Getenv("NAMESPACE")); err != nil {
+		logrus.Warning("Could not create ServiceMonitor object", "error", err.Error())
 	}
 
 	logrus.Info("Starting the Cmd.")
@@ -129,26 +110,64 @@ func main() {
 	}
 }
 
-// serveCRMetrics gets the Operator/CustomResource GVKs and generates metrics based on those types.
-// It serves those metrics on "http://metricsHost:operatorMetricsPort".
-func serveCRMetrics(cfg *rest.Config) error {
-	// Below function returns filtered operator/CustomResource specific GVKs.
-	// For more control override the below GVK list with your own custom logic.
-	filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+// CreateServiceMonitor will automatically create the prometheus-operator ServiceMonitor resources
+func createServiceMonitor(config *rest.Config, ns string) error {
+	//Check if ServiceMonitor is registered in the cluster
+	dc := discovery.NewDiscoveryClientForConfigOrDie(config)
+	apiVersion := "monitoring.coreos.com/v1"
+	kind := "ServiceMonitor"
+	if ok, err := k8sutil.ResourceExists(dc, apiVersion, kind); err != nil {
+		return err
+	} else if !ok {
+		return errors.New("cannot find ServiceMonitor registered in the cluster")
+	}
+
+	boolTrue := true
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	// Get the namespace the operator is currently deployed in.
-	operatorNs, err := k8sutil.GetOperatorNamespace()
+	deployment, err := clientSet.AppsV1().Deployments(ns).Get(os.Getenv("DEPLOYMENT_NAME"), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	// To generate metrics in other namespaces, add the values below.
-	ns := []string{operatorNs}
-	// Generate and serve custom resource specific metrics.
-	err = kubemetrics.GenerateAndServeCRMetrics(cfg, ns, filteredGVK, metricsHost, operatorMetricsPort)
-	if err != nil {
-		return err
+
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "prometheus-clickhouse",
+			Namespace: ns,
+			Labels: map[string]string{
+				"component":  "clickhouse",
+				"prometheus": "kube-prometheus",
+				"release":    "prometheus",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         "v1",
+					BlockOwnerDeletion: &boolTrue,
+					Controller:         &boolTrue,
+					Kind:               "Deployment",
+					Name:               deployment.Name,
+					UID:                deployment.UID,
+				},
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					clickhousecluster.CreateByLabelKey: clickhousecluster.OperatorLabelKey,
+				},
+			},
+			Endpoints: []monitoringv1.Endpoint{
+				{Port: "exporter"},
+				{Interval: "15s"},
+			},
+			NamespaceSelector: monitoringv1.NamespaceSelector{Any: true},
+			PodTargetLabels:   []string{"instance_name"},
+		},
 	}
-	return nil
+
+	mClient := monclientv1.NewForConfigOrDie(config)
+	_, err = mClient.ServiceMonitors(ns).Create(sm)
+	return err
 }
