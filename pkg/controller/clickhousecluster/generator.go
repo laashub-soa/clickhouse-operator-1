@@ -275,8 +275,6 @@ func (g *Generator) generateCommonService() *corev1.Service {
 				},
 			},
 			Selector:        g.labelsForCluster(),
-			ClusterIP:       "None",
-			SessionAffinity: "None",
 			Type:            "ClusterIP",
 		},
 	}
