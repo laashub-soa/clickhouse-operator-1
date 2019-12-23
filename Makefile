@@ -13,7 +13,7 @@ test:
 	echo 'mode: atomic' > coverage.txt && go test -covermode=atomic -coverprofile=coverage.txt -v -run="Test*" -timeout=30s ./...
 
 build: clean
-	go build -o bin/broker -ldflags "-X main.Version=$(shell git describe)" cmd/manager/main.go
+	go build -o bin/broker -ldflags "-X version.Version=$(shell git describe)" cmd/manager/main.go
 
 image:
 	docker build --no-cache . -f cmd/init-container/Dockerfile -t "$(INIT_IMAGE):$(TAG)"

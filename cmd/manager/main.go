@@ -99,7 +99,7 @@ func main() {
 
 	// Create the prometheus-operator ServiceMonitor resources
 	if err = createServiceMonitor(cfg, os.Getenv("NAMESPACE")); err != nil {
-		logrus.Warning("Could not create ServiceMonitor object", "error", err.Error())
+		logrus.Warningf("Could not create ServiceMonitor object, error: %s", err.Error())
 	}
 
 	logrus.Info("Starting the Cmd.")

@@ -389,7 +389,9 @@ func (r *ReconcileClickHouseCluster) reconcileService(service *corev1.Service) e
 		}
 		return err
 	}
-
+	if curService.Spec.ClusterIP != "None" {
+		service.Spec = curService.Spec
+	}
 	if reflect.DeepEqual(curService.Spec, service.Spec) {
 		logrus.Debug("no need to update service")
 		return nil
