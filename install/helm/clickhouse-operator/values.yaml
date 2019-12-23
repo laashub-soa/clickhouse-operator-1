@@ -2,7 +2,7 @@
 ##
 image:
   repository: registry.sensetime.com/diamond/service-providers/clickhouse-operator
-  tag: v0.5.1-beta
+  tag: v0.5.0
   pullPolicy: Always
   imagePullSecrets:
     enabled: false
