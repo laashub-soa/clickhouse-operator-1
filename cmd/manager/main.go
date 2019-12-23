@@ -159,8 +159,10 @@ func createServiceMonitor(config *rest.Config, ns string) error {
 				},
 			},
 			Endpoints: []monitoringv1.Endpoint{
-				{Port: "exporter"},
-				{Interval: "15s"},
+				{
+					Port:     "exporter",
+					Interval: "15s",
+				},
 			},
 			NamespaceSelector: monitoringv1.NamespaceSelector{Any: true},
 			PodTargetLabels:   []string{"instance_name"},

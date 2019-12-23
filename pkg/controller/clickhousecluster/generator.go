@@ -274,8 +274,8 @@ func (g *Generator) generateCommonService() *corev1.Service {
 					},
 				},
 			},
-			Selector:        g.labelsForCluster(),
-			Type:            "ClusterIP",
+			Selector: g.labelsForCluster(),
+			Type:     "ClusterIP",
 		},
 	}
 }
