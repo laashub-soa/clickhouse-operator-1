@@ -504,6 +504,21 @@ func (b *CHCBrokerLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestCon
 	return nil, nil
 }
 
+func (b *CHCBrokerLogic) Operate(request *osb.OperationRequest, c *broker.RequestContext) (*broker.OperationResponse, error) {
+	response := broker.OperationResponse{
+		OperationResponse: osb.OperationResponse{
+			Async:        false,
+			OperationKey: &[]osb.OperationKey{ProvisionOperation}[0],
+		},
+		Exists: false,
+	}
+	return &response, nil
+}
+
+func (b *CHCBrokerLogic) GetExtensionDocument(request *osb.ExtensionDocumentRequest, c *broker.RequestContext) (*string, error) {
+	return &request.ExtensionID, nil
+}
+
 // Update is to update the CR of cluster
 func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.RequestContext) (*broker.UpdateInstanceResponse, error) {
 	glog.V(5).Infof("get request from Update: %s\n", toJson(request))

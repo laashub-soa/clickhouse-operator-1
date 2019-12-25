@@ -10,6 +10,7 @@ require (
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
+	github.com/mackwong/go-open-service-broker-client v0.0.0-20191225031125-95a996c3bb0c // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/pmorie/go-open-service-broker-client v0.0.0-20190909175253-906fa5f9c249
@@ -29,7 +30,8 @@ require (
 
 // Pinned to kubernetes-1.15.4
 replace (
-	github.com/pmorie/osb-broker-lib => github.com/mackwong/osb-broker-lib v0.0.0-20191211100151-8a43bcf0d4b6
+	github.com/pmorie/go-open-service-broker-client => github.com/mackwong/go-open-service-broker-client v0.0.0-20191225033153-e9e53816a45a
+	github.com/pmorie/osb-broker-lib => github.com/mackwong/osb-broker-lib v0.0.0-20191225033831-f7555ebefe41
 	k8s.io/api => k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
