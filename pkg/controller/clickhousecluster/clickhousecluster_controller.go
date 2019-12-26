@@ -529,8 +529,9 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		changed = true
 	}
 	if c.Spec.Zookeeper == nil {
-		config.DefaultZookeeper.Root = fmt.Sprintf("%s/%s/%s", config.DefaultZookeeper.Root, c.Namespace, c.Name)
-		c.Spec.Zookeeper = config.DefaultZookeeper
+		zkConfig := *config.DefaultZookeeper
+		zkConfig.Root = fmt.Sprintf("%s/%s/%s", zkConfig.Root, c.Namespace, c.Name)
+		c.Spec.Zookeeper = &zkConfig
 		changed = true
 	}
 	if c.Spec.DataStorageClass != "" && c.Spec.DataCapacity == "" {
