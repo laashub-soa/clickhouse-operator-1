@@ -30,8 +30,8 @@ require (
 
 // Pinned to kubernetes-1.15.4
 replace (
-	github.com/pmorie/go-open-service-broker-client => github.com/mackwong/go-open-service-broker-client v0.0.0-20191225033153-e9e53816a45a
-	github.com/pmorie/osb-broker-lib => github.com/mackwong/osb-broker-lib v0.0.0-20191225033831-f7555ebefe41
+	github.com/pmorie/go-open-service-broker-client => /Users/wangjun3/gocode/src/github.com/mackwong/go-open-service-broker-client
+	github.com/pmorie/osb-broker-lib => /Users/wangjun3/gocode/src/github.com/pmorie/osb-broker-lib
 	k8s.io/api => k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
