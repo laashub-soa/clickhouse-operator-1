@@ -10,7 +10,6 @@ require (
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
-	github.com/mackwong/go-open-service-broker-client v0.0.0-20191225031125-95a996c3bb0c // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/prometheus/client_golang v1.0.0
@@ -19,7 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
 	gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231040802-a002a2efac33
-	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231041423-adf6ce55b86b
+	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231065726-e08525ba3d21
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

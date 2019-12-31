@@ -532,6 +532,10 @@ gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-2
 gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231040802-a002a2efac33/go.mod h1:ymGPGnlDM89d5d6ID9fGoYjgjyG6xjLXeUMkjMywj4o=
 gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231041423-adf6ce55b86b h1:UFmHGb86/TvkHRO7rb7SDli6sGBz4qThs0bX6NseVYs=
 gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231041423-adf6ce55b86b/go.mod h1:TfSuTMVqYN4Dq2o3sFm2hnO7ymX0kWCOumD12CkZuWo=
+gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231061358-e4fe0a9c710e h1:FIkJehgZti4kNb6Sf+Q3wpzUTmtcjHe9mZY7d3AR1/I=
+gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231061358-e4fe0a9c710e/go.mod h1:TfSuTMVqYN4Dq2o3sFm2hnO7ymX0kWCOumD12CkZuWo=
+gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231065726-e08525ba3d21 h1:+7WWn8JRK5DHRynwWQwp4xPDBWBCdWC6WyX5FUY4MtU=
+gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231065726-e08525ba3d21/go.mod h1:TfSuTMVqYN4Dq2o3sFm2hnO7ymX0kWCOumD12CkZuWo=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v0.0.0-20181018215023-8dc6146f7569/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=

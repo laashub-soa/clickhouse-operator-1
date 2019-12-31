@@ -433,6 +433,31 @@ func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *bro
 
 }
 
+var ccc int
+
+func (b *CHCBrokerLogic) ExtensionLastOperation(request *osb.ExtensionLastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
+	ccc = ccc + 10
+	desc := fmt.Sprintf("%d", ccc)
+	operationKey := osb.OperationKey(*request.ActionID)
+	if operationKey == "test" {
+		if ccc > 50 {
+			return &broker.LastOperationResponse{
+				osb.LastOperationResponse{
+					State:       osb.StateSucceeded,
+					Description: &desc,
+				},
+			}, nil
+		}
+		return &broker.LastOperationResponse{
+			osb.LastOperationResponse{
+				State:       osb.StateInProgress,
+				Description: &desc,
+			},
+		}, nil
+	}
+	return nil, nil
+}
+
 // Bind is to create a Binding, which also generates a user of ClickHouse, optionally, with given username and password
 func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext) (*broker.BindResponse, error) {
 	glog.V(5).Infof("get request from Bind: %s\n", toJson(request))
@@ -505,18 +530,35 @@ func (b *CHCBrokerLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestCon
 }
 
 func (b *CHCBrokerLogic) Extension(request *osb.ExtensionRequest, c *broker.RequestContext) (*broker.ExtensionResponse, error) {
+	operationKey := osb.OperationKey(request.ActionID)
 	response := broker.ExtensionResponse{
 		ExtensionResponse: osb.ExtensionResponse{
-			Async:        false,
-			OperationKey: &[]osb.OperationKey{ProvisionOperation}[0],
+			Async:        true,
+			OperationKey: &operationKey,
 		},
 		Exists: false,
 	}
 	return &response, nil
 }
 
-func (b *CHCBrokerLogic) GetExtensionDocumentation(request *osb.GetDocumentationRequest, c *broker.RequestContext) (*string, error) {
-	return &request.ExtensionID, nil
+func (b *CHCBrokerLogic) UndoExtension(request *osb.UndoExtensionRequest, c *broker.RequestContext) (*broker.UndoExtensionResponse, error) {
+	operationKey := osb.OperationKey(request.ActionID)
+	response := broker.UndoExtensionResponse{
+		UndoExtensionResponse: osb.UndoExtensionResponse{
+			Async:        false,
+			OperationKey: &operationKey,
+		},
+		Exists: false,
+	}
+	return &response, nil
+}
+
+func (b *CHCBrokerLogic) GetDocumentation(request *osb.GetDocumentationRequest, c *broker.RequestContext) (*broker.DocumentationResponse, error) {
+	return &broker.DocumentationResponse{
+		osb.GetDocumentationResponse{
+			Documentation: "just for test",
+		},
+	}, nil
 }
 
 // Update is to update the CR of cluster
