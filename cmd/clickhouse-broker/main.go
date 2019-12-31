@@ -17,9 +17,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/mackwong/clickhouse-operator/pkg/broker"
-	"github.com/pmorie/osb-broker-lib/pkg/metrics"
-	"github.com/pmorie/osb-broker-lib/pkg/rest"
-	"github.com/pmorie/osb-broker-lib/pkg/server"
+	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/metrics"
+	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/rest"
+	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/server"
 )
 
 var Version string

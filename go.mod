@@ -13,13 +13,13 @@ require (
 	github.com/mackwong/go-open-service-broker-client v0.0.0-20191225031125-95a996c3bb0c // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/operator-framework/operator-sdk v0.12.0
-	github.com/pmorie/go-open-service-broker-client v0.0.0-20190909175253-906fa5f9c249
-	github.com/pmorie/osb-broker-lib v0.0.0-20180516212803-87d71cfbf342
 	github.com/prometheus/client_golang v1.0.0
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 	github.com/shawn-hurley/osb-broker-k8s-lib v0.0.0-20180430125558-bed19ac36ffe
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
+	gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231040802-a002a2efac33
+	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231041423-adf6ce55b86b
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
@@ -30,8 +30,6 @@ require (
 
 // Pinned to kubernetes-1.15.4
 replace (
-	github.com/pmorie/go-open-service-broker-client => /Users/wangjun3/gocode/src/github.com/mackwong/go-open-service-broker-client
-	github.com/pmorie/osb-broker-lib => /Users/wangjun3/gocode/src/github.com/pmorie/osb-broker-lib
 	k8s.io/api => k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d

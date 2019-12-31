@@ -20,8 +20,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/mitchellh/mapstructure"
-	osb "github.com/pmorie/go-open-service-broker-client/v2"
-	"github.com/pmorie/osb-broker-lib/pkg/broker"
+	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
+	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/broker"
 )
 
 const (
@@ -504,9 +504,9 @@ func (b *CHCBrokerLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestCon
 	return nil, nil
 }
 
-func (b *CHCBrokerLogic) Operate(request *osb.OperationRequest, c *broker.RequestContext) (*broker.OperationResponse, error) {
-	response := broker.OperationResponse{
-		OperationResponse: osb.OperationResponse{
+func (b *CHCBrokerLogic) Extension(request *osb.ExtensionRequest, c *broker.RequestContext) (*broker.ExtensionResponse, error) {
+	response := broker.ExtensionResponse{
+		ExtensionResponse: osb.ExtensionResponse{
 			Async:        false,
 			OperationKey: &[]osb.OperationKey{ProvisionOperation}[0],
 		},
@@ -515,7 +515,7 @@ func (b *CHCBrokerLogic) Operate(request *osb.OperationRequest, c *broker.Reques
 	return &response, nil
 }
 
-func (b *CHCBrokerLogic) GetExtensionDocument(request *osb.ExtensionDocumentRequest, c *broker.RequestContext) (*string, error) {
+func (b *CHCBrokerLogic) GetExtensionDocumentation(request *osb.GetDocumentationRequest, c *broker.RequestContext) (*string, error) {
 	return &request.ExtensionID, nil
 }
 
