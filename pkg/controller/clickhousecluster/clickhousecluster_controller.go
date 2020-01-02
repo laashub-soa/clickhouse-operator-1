@@ -104,6 +104,14 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return forget, err
 	}
 
+	// https://github.com/ClickHouse/ClickHouse/issues/6402
+	if cc.DeletionTimestamp != nil {
+		wholePath := fmt.Sprintf("default@%s-0-0.%s-0.%s.svc.cluster.local:9000", cc.Name, cc.Name, cc.Namespace)
+		if int(cc.Spec.ReplicasCount)*len(wholePath) > 255 {
+			log.Warning("the name is too long, may cause failure")
+		}
+	}
+
 	if cc.Annotations == nil {
 		cc.Annotations = make(map[string]string)
 	}
