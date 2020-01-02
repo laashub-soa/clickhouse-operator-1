@@ -89,31 +89,31 @@ func (g *Generator) ownerReference() []metav1.OwnerReference {
 }
 
 func (g *Generator) marosEmptyDirName() string {
-	return fmt.Sprintf("clickhouse-%s-maros", g.cc.Name)
+	return fmt.Sprintf("%s-maros", g.cc.Name)
 }
 
 func (g *Generator) commonConfigMapName() string {
-	return fmt.Sprintf("clickhouse-%s-common-config", g.cc.Name)
+	return fmt.Sprintf("%s-common-config", g.cc.Name)
 }
 
 func (g *Generator) commonServiceName() string {
-	return fmt.Sprintf("clickhouse-%s", g.cc.Name)
+	return fmt.Sprintf("%s", g.cc.Name)
 }
 
 func (g *Generator) PspRoleBindingName() string {
-	return fmt.Sprintf("clickhouse-psp-%s", g.cc.Name)
+	return fmt.Sprintf("psp-%s", g.cc.Name)
 }
 
 func (g *Generator) userConfigMapName() string {
-	return fmt.Sprintf("clickhouse-%s-user-config", g.cc.Name)
+	return fmt.Sprintf("%s-user-config", g.cc.Name)
 }
 
 func (g *Generator) volumeClaimName() string {
-	return fmt.Sprintf("clickhouse-%s-volume-claim", g.cc.Name)
+	return fmt.Sprintf("%s-volume-claim", g.cc.Name)
 }
 
 func (g *Generator) statefulSetName(shardID int) string {
-	return fmt.Sprintf("clickhouse-%s-%d", g.cc.Name, shardID)
+	return fmt.Sprintf("%s-%d", g.cc.Name, shardID)
 }
 
 func (g *Generator) serviceName(shardID int) string {

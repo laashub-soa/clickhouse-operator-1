@@ -61,5 +61,5 @@ func validateBrokerAPIVersion(version string) bool {
 }
 
 func getCHCServiceName(name, namespace string) string {
-	return fmt.Sprintf("clickhouse-%s.%s.svc.cluster.local", name, namespace)
+	return fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)
 }
