@@ -433,31 +433,6 @@ func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *bro
 
 }
 
-var ccc int
-
-func (b *CHCBrokerLogic) ExtensionLastOperation(request *osb.ExtensionLastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
-	ccc = ccc + 10
-	desc := fmt.Sprintf("%d", ccc)
-	operationKey := osb.OperationKey(*request.ActionID)
-	if operationKey == "test" {
-		if ccc > 50 {
-			return &broker.LastOperationResponse{
-				osb.LastOperationResponse{
-					State:       osb.StateSucceeded,
-					Description: &desc,
-				},
-			}, nil
-		}
-		return &broker.LastOperationResponse{
-			osb.LastOperationResponse{
-				State:       osb.StateInProgress,
-				Description: &desc,
-			},
-		}, nil
-	}
-	return nil, nil
-}
-
 // Bind is to create a Binding, which also generates a user of ClickHouse, optionally, with given username and password
 func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext) (*broker.BindResponse, error) {
 	glog.V(5).Infof("get request from Bind: %s\n", toJson(request))
@@ -529,16 +504,42 @@ func (b *CHCBrokerLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestCon
 	return nil, nil
 }
 
-func (b *CHCBrokerLogic) Extension(request *osb.ExtensionRequest, c *broker.RequestContext) (*broker.ExtensionResponse, error) {
-	operationKey := osb.OperationKey(request.ActionID)
-	response := broker.ExtensionResponse{
+func doSyncAction(operatorKey *osb.OperationKey) (*broker.ExtensionResponse, error) {
+	time.Sleep(time.Second)
+	response := &broker.ExtensionResponse{
 		ExtensionResponse: osb.ExtensionResponse{
-			Async:        true,
-			OperationKey: &operationKey,
+			Async:        false,
+			OperationKey: operatorKey,
 		},
 		Exists: false,
 	}
-	return &response, nil
+	return response, nil
+}
+
+func doAsyncAction(operatorKey *osb.OperationKey) (*broker.ExtensionResponse, error) {
+	time.Sleep(time.Second)
+	response := &broker.ExtensionResponse{
+		ExtensionResponse: osb.ExtensionResponse{
+			Async:        true,
+			OperationKey: operatorKey,
+		},
+		Exists: false,
+	}
+	return response, nil
+}
+
+func (b *CHCBrokerLogic) Extension(request *osb.ExtensionRequest, c *broker.RequestContext) (*broker.ExtensionResponse, error) {
+	operationKey := osb.OperationKey(request.ActionID)
+	switch request.ExtensionID {
+	case "6bd6df0c-b5a6-4513-9a22-1cddb1c73ae9":
+		response, _ := doAsyncAction(&operationKey)
+		return response, nil
+	case "df2abd92-f1f4-4d4e-9f4d-85bcd66cca82":
+		response, _ := doSyncAction(&operationKey)
+		return response, nil
+	default:
+		return nil, fmt.Errorf("unkown operation")
+	}
 }
 
 func (b *CHCBrokerLogic) UndoExtension(request *osb.UndoExtensionRequest, c *broker.RequestContext) (*broker.UndoExtensionResponse, error) {
@@ -553,10 +554,32 @@ func (b *CHCBrokerLogic) UndoExtension(request *osb.UndoExtensionRequest, c *bro
 	return &response, nil
 }
 
-func (b *CHCBrokerLogic) GetDocumentation(request *osb.GetDocumentationRequest, c *broker.RequestContext) (*broker.DocumentationResponse, error) {
-	return &broker.DocumentationResponse{
+func (b *CHCBrokerLogic) GetDocumentation(request *osb.GetDocumentationRequest, c *broker.RequestContext) (*broker.GetDocumentationResponse, error) {
+	return &broker.GetDocumentationResponse{
 		osb.GetDocumentationResponse{
 			Documentation: "just for test",
+		},
+	}, nil
+}
+
+var ccc int
+
+func (b *CHCBrokerLogic) ExtensionLastOperation(request *osb.ExtensionLastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
+	ccc = ccc + 10
+	time.Sleep(2 *time.Second)
+	desc := fmt.Sprintf("执行进度: %d%%", ccc)
+	if ccc >= 100 {
+		return &broker.LastOperationResponse{
+			osb.LastOperationResponse{
+				State:       osb.StateSucceeded,
+				Description: &desc,
+			},
+		}, nil
+	}
+	return &broker.LastOperationResponse{
+		osb.LastOperationResponse{
+			State:       osb.StateInProgress,
+			Description: &desc,
 		},
 	}, nil
 }

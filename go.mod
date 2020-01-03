@@ -17,8 +17,8 @@ require (
 	github.com/shawn-hurley/osb-broker-k8s-lib v0.0.0-20180430125558-bed19ac36ffe
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
-	gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231040802-a002a2efac33
-	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.0.0-20191231065726-e08525ba3d21
+	gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231092643-265bdc180035
+	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.1.0
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
