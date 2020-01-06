@@ -3,7 +3,7 @@ package broker
 import (
 	"net/http"
 
-	"github.com/pmorie/go-open-service-broker-client/v2"
+	"gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
 )
 
 var (

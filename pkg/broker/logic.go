@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
 	"time"
@@ -18,10 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/golang/glog"
 	"github.com/mitchellh/mapstructure"
-	osb "github.com/pmorie/go-open-service-broker-client/v2"
-	"github.com/pmorie/osb-broker-lib/pkg/broker"
+	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
+	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/broker"
 )
 
 const (
@@ -44,22 +44,22 @@ var (
 
 // NewCHCBrokerLogic represents the creation of a CHCBrokerLogic
 func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
-	glog.Infof("NewCHCBrokerLogic called.\n")
+	logrus.Info("NewCHCBrokerLogic called.\n")
 
 	services, err := ReadFromConfigMap(o.ServiceConfigPath)
 	if err != nil {
-		glog.Fatalf("can not load services config from %s, err: %s", o.ServiceConfigPath, err)
+		logrus.Errorf("can not load services config from %s, err: %s", o.ServiceConfigPath, err)
 		return nil, err
 	}
 	if services == nil {
 		err = fmt.Errorf("can not find any service from config")
-		glog.Fatal(err.Error())
+		logrus.Error(err.Error())
 		return nil, err
 	}
 
 	cli, err := GetClickHouseClient(KubeConfig)
 	if err != nil {
-		glog.Fatalf("can not get a client, err: %s", err)
+		logrus.Errorf("can not get a client, err: %s", err)
 		return nil, err
 	}
 	return &CHCBrokerLogic{
@@ -93,13 +93,13 @@ func (b *CHCBrokerLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
 	if item.Spec.Parameters != nil {
 		err := json.Unmarshal(item.Spec.Parameters.Raw, &parameters)
 		if err != nil {
-			glog.Errorf("unmarshal parameters err: %s", err)
+			logrus.Errorf("unmarshal parameters err: %s", err)
 			return
 		}
 	}
 
 	if instanceID == "" || serviceID == "" || planID == "" {
-		glog.V(5).Infoln("skip recovery serviceInstance, cuz all IDs are null")
+		logrus.Info("skip recovery serviceInstance, cuz all IDs are null")
 		return
 	}
 	instance := Instance{
@@ -111,7 +111,7 @@ func (b *CHCBrokerLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
 		Params:    parameters,
 	}
 	b.instances[instanceID] = &instance
-	glog.V(5).Infof("recoveryInstance serviceInstance: %s\n", instanceID)
+	logrus.Infof("recoveryInstance serviceInstance: %s\n", instanceID)
 	return
 }
 
@@ -123,11 +123,11 @@ func (b *CHCBrokerLogic) recoveryBinding(item *v1beta1.ServiceBinding) {
 	secret := corev1.Secret{}
 	if err := b.cli.Get(ctx, types.NamespacedName{Name: secretName, Namespace: namespace}, &secret); err != nil {
 		if errors.IsNotFound(err) {
-			glog.Warningf("can not find secret")
+			logrus.Warningf("can not find secret")
 			return
 		}
 		err = fmt.Errorf("can not get secret: %s, err: %s", secretName, err)
-		glog.Errorf(err.Error())
+		logrus.Errorf(err.Error())
 		return
 	}
 
@@ -136,7 +136,7 @@ func (b *CHCBrokerLogic) recoveryBinding(item *v1beta1.ServiceBinding) {
 		Password: string(secret.Data["password"]),
 		Host:     BytesToStringSlice(secret.Data["host"]),
 	}
-	glog.V(5).Infof("recoveryInstance bindings: %s", item.Spec.ExternalID)
+	logrus.Infof("recoveryInstance bindings: %s", item.Spec.ExternalID)
 }
 
 // Recovery instances data from restart
@@ -146,7 +146,7 @@ func (b *CHCBrokerLogic) Recovery() error {
 
 	serviceInstanceList := v1beta1.ServiceInstanceList{}
 	if err := b.cli.List(ctx, &serviceInstanceList, &client.ListOptions{}); err != nil {
-		glog.Errorf("can not list service instance list, err: %s", err)
+		logrus.Errorf("can not list service instance list, err: %s", err)
 		return err
 	}
 
@@ -160,7 +160,7 @@ func (b *CHCBrokerLogic) Recovery() error {
 
 	serviceBindingList := v1beta1.ServiceBindingList{}
 	if err := b.cli.List(ctx, &serviceBindingList, &client.ListOptions{}); err != nil {
-		glog.Errorf("can not list service instance list, err: %s", err)
+		logrus.Errorf("can not list service instance list, err: %s", err)
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (b *CHCBrokerLogic) Recovery() error {
 		namespace := item.Namespace
 
 		if secretName == "" {
-			glog.Warningf("can not find secret in serviceBinding: %s/%s", namespace, item.Name)
+			logrus.Warningf("can not find secret in serviceBinding: %s/%s", namespace, item.Name)
 			continue
 		}
 
@@ -184,7 +184,7 @@ func (b *CHCBrokerLogic) Recovery() error {
 
 // GetCatalog is to list all ServiceClasses and ServicePlans this broker supports
 func (b *CHCBrokerLogic) GetCatalog(request *broker.RequestContext) (*broker.CatalogResponse, error) {
-	glog.V(5).Infof("get request from GetCatalog: %s\n", toJson(request))
+	logrus.Infof("get request from GetCatalog: %s\n", toJson(request))
 	response := &broker.CatalogResponse{}
 	osbResponse := &osb.CatalogResponse{
 		Services: *b.services,
@@ -231,7 +231,7 @@ loop:
 		err = b.cli.Update(ctx, chc)
 	}
 	if err != nil {
-		glog.Errorf("create chc instance err: %s", err.Error())
+		logrus.Errorf("create chc instance err: %s", err.Error())
 	}
 	return err
 }
@@ -249,7 +249,7 @@ func (b *CHCBrokerLogic) doDeprovision(instance *Instance) (err error) {
 	for _, item := range clusterList.Items {
 		err = b.cli.Delete(ctx, &item)
 		if err != nil {
-			glog.Errorf("delete clickhouse instance %s err: %s", instance.ID, err.Error())
+			logrus.Errorf("delete clickhouse instance %s err: %s", instance.ID, err.Error())
 			return err
 		}
 	}
@@ -258,7 +258,7 @@ func (b *CHCBrokerLogic) doDeprovision(instance *Instance) (err error) {
 
 // Provision is to create a ServiceInstance, which actually also creates the CR of Clickhouse cluster, optionally, with given configuration
 func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.RequestContext) (*broker.ProvisionResponse, error) {
-	glog.V(5).Infof("get request from Provision: %s\n", toJson(request))
+	logrus.Infof("get request from Provision: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
 
@@ -320,7 +320,7 @@ func (b *CHCBrokerLogic) Provision(request *osb.ProvisionRequest, c *broker.Requ
 
 // Deprovision is to delete the corresponding ServiceInstance, which also delete its cluster CR
 func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.RequestContext) (*broker.DeprovisionResponse, error) {
-	glog.V(5).Infof("get request from Deprovision: %s\n", toJson(request))
+	logrus.Infof("get request from Deprovision: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
 
@@ -337,7 +337,7 @@ func (b *CHCBrokerLogic) Deprovision(request *osb.DeprovisionRequest, c *broker.
 
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
-		glog.Warningf("instance: %s is not exist", request.InstanceID)
+		logrus.Warningf("instance: %s is not exist", request.InstanceID)
 		return &response, nil
 	}
 
@@ -403,7 +403,7 @@ func (b *CHCBrokerLogic) checkUpdateAction(instanceID string) (osb.LastOperation
 
 // LastOperation is to...
 func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
-	glog.V(5).Infof("get request from LastOperation: %s\n", toJson(request))
+	logrus.Infof("get request from LastOperation: %s\n", toJson(request))
 	if request.OperationKey == nil {
 		return nil, osb.HTTPStatusCodeError{
 			StatusCode:  http.StatusServiceUnavailable,
@@ -435,14 +435,14 @@ func (b *CHCBrokerLogic) LastOperation(request *osb.LastOperationRequest, c *bro
 
 // Bind is to create a Binding, which also generates a user of ClickHouse, optionally, with given username and password
 func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext) (*broker.BindResponse, error) {
-	glog.V(5).Infof("get request from Bind: %s\n", toJson(request))
+	logrus.Infof("get request from Bind: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
 
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
 		errMsg := fmt.Sprintf("can not find instance: %s", request.InstanceID)
-		glog.Errorf(errMsg)
+		logrus.Errorf(errMsg)
 		return nil, osb.HTTPStatusCodeError{
 			StatusCode:   http.StatusNotFound,
 			ErrorMessage: &errMsg,
@@ -459,7 +459,7 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 	})
 	if err != nil {
 		errMsg := fmt.Sprintf("can not list clickhouse err: %s\n", err)
-		glog.Errorf(errMsg)
+		logrus.Errorf(errMsg)
 		return nil, osb.HTTPStatusCodeError{
 			StatusCode:   http.StatusServiceUnavailable,
 			ErrorMessage: &errMsg,
@@ -468,7 +468,7 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 
 	if len(clusterList.Items) != 1 {
 		errMsg := fmt.Sprintf("find more than one clickhousecluster have same instance ID")
-		glog.Errorf(errMsg)
+		logrus.Errorf(errMsg)
 		return nil, osb.HTTPStatusCodeError{
 			StatusCode:   http.StatusServiceUnavailable,
 			ErrorMessage: &errMsg,
@@ -498,15 +498,95 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 
 //Unbind is to delete a binding and the user it generated
 func (b *CHCBrokerLogic) Unbind(request *osb.UnbindRequest, c *broker.RequestContext) (*broker.UnbindResponse, error) {
-	glog.V(5).Infof("get request from Bind: %s\n", toJson(request))
+	logrus.Infof("get request from Bind: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
 	return nil, nil
 }
 
+func doSyncAction(operatorKey *osb.OperationKey) (*broker.ExtensionResponse, error) {
+	time.Sleep(time.Second)
+	response := &broker.ExtensionResponse{
+		ExtensionResponse: osb.ExtensionResponse{
+			Async:        false,
+			OperationKey: operatorKey,
+		},
+		Exists: false,
+	}
+	return response, nil
+}
+
+func doAsyncAction(operatorKey *osb.OperationKey) (*broker.ExtensionResponse, error) {
+	time.Sleep(time.Second)
+	response := &broker.ExtensionResponse{
+		ExtensionResponse: osb.ExtensionResponse{
+			Async:        true,
+			OperationKey: operatorKey,
+		},
+		Exists: false,
+	}
+	return response, nil
+}
+
+func (b *CHCBrokerLogic) Extension(request *osb.ExtensionRequest, c *broker.RequestContext) (*broker.ExtensionResponse, error) {
+	operationKey := osb.OperationKey(request.ActionID)
+	switch request.ExtensionID {
+	case "6bd6df0c-b5a6-4513-9a22-1cddb1c73ae9":
+		response, _ := doAsyncAction(&operationKey)
+		return response, nil
+	case "df2abd92-f1f4-4d4e-9f4d-85bcd66cca82":
+		response, _ := doSyncAction(&operationKey)
+		return response, nil
+	default:
+		return nil, fmt.Errorf("unkown operation")
+	}
+}
+
+func (b *CHCBrokerLogic) UndoExtension(request *osb.UndoExtensionRequest, c *broker.RequestContext) (*broker.UndoExtensionResponse, error) {
+	operationKey := osb.OperationKey(request.ActionID)
+	response := broker.UndoExtensionResponse{
+		UndoExtensionResponse: osb.UndoExtensionResponse{
+			Async:        false,
+			OperationKey: &operationKey,
+		},
+		Exists: false,
+	}
+	return &response, nil
+}
+
+func (b *CHCBrokerLogic) GetDocumentation(request *osb.GetDocumentationRequest, c *broker.RequestContext) (*broker.GetDocumentationResponse, error) {
+	return &broker.GetDocumentationResponse{
+		osb.GetDocumentationResponse{
+			Documentation: "just for test",
+		},
+	}, nil
+}
+
+var ccc int
+
+func (b *CHCBrokerLogic) ExtensionLastOperation(request *osb.ExtensionLastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
+	ccc = ccc + 10
+	time.Sleep(2 * time.Second)
+	desc := fmt.Sprintf("执行进度: %d%%", ccc)
+	if ccc >= 100 {
+		return &broker.LastOperationResponse{
+			osb.LastOperationResponse{
+				State:       osb.StateSucceeded,
+				Description: &desc,
+			},
+		}, nil
+	}
+	return &broker.LastOperationResponse{
+		osb.LastOperationResponse{
+			State:       osb.StateInProgress,
+			Description: &desc,
+		},
+	}, nil
+}
+
 // Update is to update the CR of cluster
 func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.RequestContext) (*broker.UpdateInstanceResponse, error) {
-	glog.V(5).Infof("get request from Update: %s\n", toJson(request))
+	logrus.Infof("get request from Update: %s\n", toJson(request))
 	b.Lock()
 	defer b.Unlock()
 

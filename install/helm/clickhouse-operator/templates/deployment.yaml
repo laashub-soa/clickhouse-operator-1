@@ -37,6 +37,8 @@ spec:
       - name: {{ template "clickhouse-operator.name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        args:
+          - operator
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         env:

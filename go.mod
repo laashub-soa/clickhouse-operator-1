@@ -6,19 +6,19 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/coreos/prometheus-operator v0.29.0
 	github.com/go-openapi/spec v0.19.0
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/operator-framework/operator-sdk v0.12.0
-	github.com/pmorie/go-open-service-broker-client v0.0.0-20190909175253-906fa5f9c249
-	github.com/pmorie/osb-broker-lib v0.0.0-20180516212803-87d71cfbf342
 	github.com/prometheus/client_golang v1.0.0
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 	github.com/shawn-hurley/osb-broker-k8s-lib v0.0.0-20180430125558-bed19ac36ffe
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
+	github.com/urfave/cli/v2 v2.1.1
+	gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231092643-265bdc180035
+	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.1.0
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
@@ -29,7 +29,6 @@ require (
 
 // Pinned to kubernetes-1.15.4
 replace (
-	github.com/pmorie/osb-broker-lib => github.com/mackwong/osb-broker-lib v0.0.0-20191211100151-8a43bcf0d4b6
 	k8s.io/api => k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d

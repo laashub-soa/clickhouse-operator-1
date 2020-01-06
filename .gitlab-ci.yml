@@ -26,6 +26,7 @@ coverage:
   before_script:
     - mkdir -p /go/src/github.com/mackwong/ ~/.kube/
     - ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
+    - wget -O /go/src/github.com/mackwong/clickhouse-operator/vendor.tgz http://file.intra.sensetime.com/f/6f9e66ffc8/?raw=1
     - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
   script:
     - >

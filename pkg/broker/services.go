@@ -8,7 +8,7 @@ import (
 	"github.com/mackwong/clickhouse-operator/pkg/apis"
 	"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/mitchellh/mapstructure"
-	osb "github.com/pmorie/go-open-service-broker-client/v2"
+	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
