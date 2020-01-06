@@ -3,10 +3,10 @@ package broker
 import (
 	"context"
 	"fmt"
-	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
-	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/broker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
+	"gitlab.bj.sensetime.com/service-providers/osb-broker-lib/pkg/broker"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"

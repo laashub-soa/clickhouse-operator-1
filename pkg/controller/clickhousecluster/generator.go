@@ -361,6 +361,7 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					},
 				},
 			},
+			Args: []string{"init"},
 		},
 	}
 	statefulset.Spec.Template.Spec.Containers = []corev1.Container{

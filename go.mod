@@ -6,7 +6,6 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/coreos/prometheus-operator v0.29.0
 	github.com/go-openapi/spec v0.19.0
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
@@ -17,6 +16,7 @@ require (
 	github.com/shawn-hurley/osb-broker-k8s-lib v0.0.0-20180430125558-bed19ac36ffe
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
+	github.com/urfave/cli/v2 v2.1.1
 	gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client v0.0.0-20191231092643-265bdc180035
 	gitlab.bj.sensetime.com/service-providers/osb-broker-lib v0.1.0
 	gopkg.in/yaml.v2 v2.2.2

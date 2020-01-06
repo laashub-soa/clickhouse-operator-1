@@ -27,9 +27,8 @@ spec:
       - name: servicebroker
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
-        command:
-        - broker
         args:
+        - broker
         - --port
         - "8443"
         {{- if .Values.tls.cert}}
@@ -43,9 +42,6 @@ spec:
         {{- if .Values.authenticate}}
         - --authenticate-k8s-token
         {{- end}}
-        - -v
-        - "5"
-        - -logtostderr
         {{- if .Values.insecure }}
         - --insecure
         {{- else }}

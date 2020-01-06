@@ -1,8 +1,8 @@
 # Default values for the broker-skeleton
 # Image to use
 image:
-  repository: registry.sensetime.com/diamond/service-providers/clickhouse-broker
-  tag: v0.4.0
+  repository: registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one
+  tag: v1.0.0
   pullPolicy: Always
 # ImagePullPolicy; valid values are "IfNotPresent", "Never", and "Always"
 imagePullPolicy: Always
