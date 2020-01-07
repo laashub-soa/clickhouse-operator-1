@@ -562,13 +562,14 @@ func (b *CHCBrokerLogic) GetDocumentation(request *osb.GetDocumentationRequest, 
 	}, nil
 }
 
-var ccc int
+var progress int
 
 func (b *CHCBrokerLogic) ExtensionLastOperation(request *osb.ExtensionLastOperationRequest, c *broker.RequestContext) (*broker.LastOperationResponse, error) {
-	ccc = ccc + 10
+	progress += 10
 	time.Sleep(2 * time.Second)
-	desc := fmt.Sprintf("执行进度: %d%%", ccc)
-	if ccc >= 100 {
+	desc := fmt.Sprintf("执行进度: %d%%", progress)
+	if progress >= 100 {
+		progress = 0
 		return &broker.LastOperationResponse{
 			osb.LastOperationResponse{
 				State:       osb.StateSucceeded,
