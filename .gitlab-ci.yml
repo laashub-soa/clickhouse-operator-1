@@ -29,13 +29,14 @@ coverage:
     - wget -O /go/src/github.com/mackwong/clickhouse-operator/vendor.tgz http://file.intra.sensetime.com/f/6f9e66ffc8/?raw=1
     - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
   script:
+    - make lint
     - >
       until curl -s --fail http://localhost:10080/kubernetes-ready; do
         sleep 20;
       done
     - wget -O ~/.kube/config http://localhost:10080/config
     - kubectl create -f ./deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml --namespace clickhouse-system
-    - make lint && make coverage
+    - make coverage
   tags:
     - k8s
 

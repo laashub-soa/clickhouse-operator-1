@@ -47,7 +47,7 @@ generate: ## Deploys operator with helm
 
 deploy-broker: ## Deploys broker with helm
 	helm upgrade --install clickhouse-service-broker \
-	helm/clickhouse-service-broker --namespace clickhouse-system \
+	install/helm/clickhouse-broker --namespace clickhouse-system \
 	--set image="$(IMAGE):$(TAG)",imagePullPolicy="$(PULL)"
 
 install: deploy-operator deploy-broker ## install components of clickhouse serivces
