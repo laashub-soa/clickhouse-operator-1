@@ -37,6 +37,7 @@ coverage:
     - wget -O ~/.kube/config http://localhost:10080/config
     - kubectl create -f ./deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml --namespace clickhouse-system
     - make coverage
+    - bash <(curl -s https://codecov.io/bash)
   tags:
     - k8s
 
