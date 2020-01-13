@@ -17,7 +17,7 @@ code_scan:
   tags:
     - k8s
 
-coverage:
+pages:
   stage: UNIT-TEST
   services:
     - name: registry.sensetime.com/diamond/kind:v1.14.4
