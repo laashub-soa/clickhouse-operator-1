@@ -2,7 +2,7 @@
 - name: clickhouse
   id: "558888d1-f00a-3176-01e4-05cd2d68eb18"
   description: "Provide clickhouse as a service through Open service Broker!"
-  bindable: false
+  bindable: true
   planupdatable: false
   metadata:
     display_name: clickhouse service
@@ -31,11 +31,11 @@
               replicasCount: 2
               resources:
                 requests:
-                  cpu: '1'
-                  memory: 4Gi
+                  cpu: '0.1'
+                  memory: 300Mi
                 limits:
-                  cpu: '1'
-                  memory: 4Gi
+                  cpu: '0.1'
+                  memory: 500Mi
     - name: ceph
       id: 80009ea6-ac3c-4404-9073-2f889471a680
       description: "以ceph作为数据存储的配置"
