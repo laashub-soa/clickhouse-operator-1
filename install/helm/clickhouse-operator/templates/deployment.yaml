@@ -31,8 +31,18 @@ spec:
 {{- end }}
       securityContext:
         runAsUser: 1000
+{{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations| indent 8}}
+{{- end -}}
+{{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8}}
+{{- end -}}
+{{- if .Values.nodeSelector }}
       nodeSelector:
-{{ toYaml .Values.operatorNodeSelector | indent 10 }}
+{{ toYaml .Values.nodeSelector| indent 8}}
+{{- end }}
       containers:
       - name: {{ template "clickhouse-operator.name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

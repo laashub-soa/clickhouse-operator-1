@@ -15,3 +15,16 @@ tls:
   # base-64 encoded PEM data for the private key matching the certificate
   key:
 deployClusterServiceBroker: true
+nodeSelector:
+  beta.kubernetes.io/os: linux
+  beta.kubernetes.io/arch: amd64
+
+## Tolerations for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: {}
+
+## Affinity for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity: {}

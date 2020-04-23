@@ -40,10 +40,20 @@ zookeeperConfig:
     storageClassName: local-dynamic
     storage: 2Gi
 
-operatorNodeSelector:
-  kubernetes.io/os: linux
-
 debug:
   enabled: false
 
 namespace: clickhouse-system
+nodeSelector:
+  beta.kubernetes.io/os: linux
+  beta.kubernetes.io/arch: amd64
+
+## Tolerations for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: {}
+
+## Affinity for pod assignment
+## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity: {}
