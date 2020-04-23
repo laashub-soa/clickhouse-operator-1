@@ -36,8 +36,8 @@
                 limits:
                   cpu: '0.1'
                   memory: 500Mi
-    - name: ceph
-      id: 80009ea6-ac3c-4404-9073-2f889471a680
+    - name: local-dynamic
+      id: 80009ea6-ac3c-4404-9073-2f889471a681
       description: "以ceph作为数据存储的配置"
       metadata:
         display_name: ceph plan
@@ -48,7 +48,7 @@
           create:
             parameters:
               dataCapacity: "20Gi"
-              dataStorageClass: ceph-rbd
+              dataStorageClass: local-dynamic
               deletePVC: true
               shardsCount: 2
               replicasCount: 2
