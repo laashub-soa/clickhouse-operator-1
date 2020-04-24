@@ -33,8 +33,6 @@ metricService: false
 zookeeperConfig:
   enable: true
   replicas: 3
-  nodeSelector:
-    kubernetes.io/os: linux
   StoreageClass:
     enable: false
     storageClassName: local-dynamic
@@ -51,7 +49,6 @@ nodeSelector:
 ## Tolerations for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 
-#example:
 #tolerations:
 #  - key: "node.kubernetes.io/unreachable"
 #    operator: "Exists"

@@ -23,7 +23,6 @@ nodeSelector:
 ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 ##
 
-#example:
 #tolerations:
 #  - key: "node.kubernetes.io/unreachable"
 #    operator: "Exists"
