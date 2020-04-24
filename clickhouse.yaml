@@ -8,11 +8,11 @@
     display_name: clickhouse service
     image_url: http://gitlab.bj.sensetime.com/uploads/-/system/project/avatar/10933/clickhouse-logo.png
   plans:
-    - name: simple
+    - name: standalone
       id: ebd00cf7-3d2a-465f-b10c-b9b90a01badf
       description: "使用本地存储的配置"
       metadata:
-        display_name: host-volume plan
+        display_name: v19.16+1分片+0.5核2G
         specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
       free: true
       extensions:
@@ -31,16 +31,16 @@
               replicasCount: 2
               resources:
                 requests:
-                  cpu: '0.1'
-                  memory: 300Mi
+                  cpu: '0.5'
+                  memory: 2Gi
                 limits:
-                  cpu: '0.1'
-                  memory: 500Mi
-    - name: local-dynamic
+                  cpu: '0.5'
+                  memory: 2Gi
+    - name: cluster
       id: 80009ea6-ac3c-4404-9073-2f889471a681
       description: "以ceph作为数据存储的配置"
       metadata:
-        display_name: ceph plan
+        display_name: v19.16+三分片+1核4G
         specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
       free: true
       schemas:
@@ -48,9 +48,8 @@
           create:
             parameters:
               dataCapacity: "20Gi"
-              dataStorageClass: local-dynamic
               deletePVC: true
-              shardsCount: 2
+              shardsCount: 3
               replicasCount: 2
               resources:
                 requests:
