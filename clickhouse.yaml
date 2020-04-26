@@ -29,6 +29,11 @@
               deletePVC: true
               shardsCount: 1
               replicasCount: 2
+              pod:
+                tolerations:
+                  - key: "node.kubernetes.io/unreachable"
+                    operator: "Exists"
+                    effect: "NoExecute"
               resources:
                 requests:
                   cpu: '0.5'
@@ -51,6 +56,11 @@
               deletePVC: true
               shardsCount: 3
               replicasCount: 2
+              pod:
+                tolerations:
+                  - key: "node.kubernetes.io/unreachable"
+                    operator: "Exists"
+                    effect: "NoExecute"
               resources:
                 requests:
                   cpu: '1'
