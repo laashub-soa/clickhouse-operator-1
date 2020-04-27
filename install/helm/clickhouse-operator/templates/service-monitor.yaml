@@ -1,0 +1,23 @@
+{{- if .Values.metricService }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    component: clickhouse
+    prometheus: kube-prometheus
+    release: prometheus
+  name: kube-prometheus-clickhouse
+  namespace: {{ .Release.Namespace }}
+spec:
+  endpoints:
+    - interval: 15s
+      port: exporter
+  jobLabel: kube-prometheus-clickhouse-k8s
+  podTargetLabels:
+    - instance_name
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      created-by: clickhouse-operator
+  {{- end }}

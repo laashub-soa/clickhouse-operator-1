@@ -27,7 +27,7 @@ createCustomResource: true
 rbacEnable: true
 
 ## if true deploy service for metrics access
-metricService: false
+metricService: true
 
 ## If true, create & deploy the zookeeper
 zookeeperConfig:
