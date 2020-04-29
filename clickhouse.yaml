@@ -31,8 +31,9 @@
               replicasCount: 2
               pod:
                 tolerations:
-                  - key: "node.kubernetes.io/unreachable"
-                    operator: "Exists"
+                  - key: "project"
+                    operator: "Equal"
+                    value: ""
                     effect: "NoExecute"
               resources:
                 requests:
@@ -58,8 +59,9 @@
               replicasCount: 2
               pod:
                 tolerations:
-                  - key: "node.kubernetes.io/unreachable"
-                    operator: "Exists"
+                  - key: "project"
+                    operator: "Equal"
+                    value: ""
                     effect: "NoExecute"
               resources:
                 requests:
