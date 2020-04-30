@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
@@ -18,6 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/mitchellh/mapstructure"
 	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
@@ -57,7 +62,7 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 		return nil, err
 	}
 
-	cli, err := GetClickHouseClient(KubeConfig)
+	cli, mCli, err := GetClickHouseClient(KubeConfig)
 	if err != nil {
 		logrus.Errorf("can not get a client, err: %s", err)
 		return nil, err
@@ -65,6 +70,7 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 	return &CHCBrokerLogic{
 		services:  services,
 		cli:       cli,
+		smCli:     mCli,
 		instances: make(map[string]*Instance, 10),
 		bindings:  make(map[string]*BindingInfo, 10),
 	}, nil
@@ -78,6 +84,7 @@ type CHCBrokerLogic struct {
 	sync.RWMutex
 	services  *[]osb.Service
 	cli       client.Client
+	smCli     *monclientv1.MonitoringV1Client
 	instances map[string]*Instance
 	bindings  map[string]*BindingInfo
 }
@@ -232,6 +239,63 @@ loop:
 	}
 	if err != nil {
 		logrus.Errorf("create chc instance err: %s", err.Error())
+		return err
+	}
+	namespaced := crclient.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+	err = b.cli.Get(ctx, namespaced, chc)
+	if err != nil {
+		logrus.Errorf("get chc instance err: %s", err.Error())
+		return err
+	}
+	return b.doProvisionServiceMonitor(chc)
+}
+
+func (b *CHCBrokerLogic) doProvisionServiceMonitor(chc *v1alpha1.ClickHouseCluster) error {
+	if b.smCli == nil {
+		logrus.Warn("can not find servicemonitor resource")
+		return nil
+	}
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "clickhouse-" + chc.Name,
+			Namespace: chc.Namespace,
+			Labels: map[string]string{
+				"component":  "clickhouse",
+				"prometheus": "kube-prometheus",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "clickhouse.service.diamond.sensetime.com/v1",
+					Kind:       "ClickHouseCluster",
+					Name:       chc.Name,
+					UID:        chc.UID,
+				},
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					clickhousecluster.ClusterLabelKey:  chc.Name,
+					clickhousecluster.CreateByLabelKey: clickhousecluster.OperatorLabelKey,
+				},
+			},
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Port:     "exporter",
+					Path:     "/metrics",
+					Interval: "15s",
+				},
+			},
+			NamespaceSelector: monitoringv1.NamespaceSelector{MatchNames: []string{chc.Namespace}},
+			PodTargetLabels:   []string{"instance_name"},
+		},
+	}
+	_, err := b.smCli.ServiceMonitors(chc.Namespace).Create(sm)
+	if err != nil && errors.IsAlreadyExists(err) {
+		_, err = b.smCli.ServiceMonitors(chc.Namespace).Update(sm)
+	}
+	if err != nil {
+		logrus.Errorf("create service monitor err: %s", err.Error())
 	}
 	return err
 }

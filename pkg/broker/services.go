@@ -1,9 +1,11 @@
 package broker
 
 import (
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"io/ioutil"
 	"reflect"
 
+	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/mackwong/clickhouse-operator/pkg/apis"
 	"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -11,6 +13,7 @@ import (
 	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes/scheme"
 	clientrest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -44,23 +47,23 @@ func ReadFromConfigMap(configPath string) (*[]osb.Service, error) {
 	return &services, err
 }
 
-func GetClickHouseClient(kubeConfigPath string) (client.Client, error) {
+func GetClickHouseClient(kubeConfigPath string) (client.Client, *monclientv1.MonitoringV1Client, error) {
 	var clientConfig *clientrest.Config
 	var err error
 	if kubeConfigPath == "" {
 		clientConfig, err = clientrest.InClusterConfig()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		config, err := clientcmd.LoadFromFile(kubeConfigPath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		clientConfig, err = clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -68,17 +71,26 @@ func GetClickHouseClient(kubeConfigPath string) (client.Client, error) {
 	//s := runtime.NewScheme()
 	err = apis.AddToScheme(s)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = v1beta1.AddToScheme(s)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	cli, err := client.New(clientConfig, client.Options{
 		Scheme: s,
 	})
-	return cli, err
+
+	var ok bool
+	var mClient *monclientv1.MonitoringV1Client
+	dc := discovery.NewDiscoveryClientForConfigOrDie(clientConfig)
+	if ok, err = k8sutil.ResourceExists(dc, "monitoring.coreos.com/v1", "ServiceMonitor"); err != nil {
+		return nil, nil, err
+	} else if ok {
+		mClient = monclientv1.NewForConfigOrDie(clientConfig)
+	}
+	return cli, mClient, err
 }
 
 func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) *v1.ClickHouseCluster {
