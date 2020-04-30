@@ -33,7 +33,7 @@
                 tolerations:
                   - key: "project"
                     operator: "Equal"
-                    value: ""
+                    value: "xxx"
                     effect: "NoExecute"
               resources:
                 requests:
@@ -61,7 +61,7 @@
                 tolerations:
                   - key: "project"
                     operator: "Equal"
-                    value: ""
+                    value: "xxx"
                     effect: "NoExecute"
               resources:
                 requests:
