@@ -15,6 +15,7 @@
         display_name: v19.16+1分片+0.5核2G
         specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
         tolerations: pod.tolerations
+        nodeSelector: pod.nodeSelector
       free: true
       extensions:
         - name: backup
@@ -50,6 +51,7 @@
         display_name: v19.16+三分片+1核4G
         specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
         tolerations: pod.tolerations
+        nodeSelector: pod.nodeSelector
       free: true
       schemas:
         serviceinstance:
