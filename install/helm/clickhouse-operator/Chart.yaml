@@ -5,7 +5,7 @@ home: https://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse
 sources:
   - https://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse
 version: 0.1.0
-appVersion: 1.0.0
+appVersion: 0.1.0
 icon: 
 maintainers:
   - email: wangjun3@sensetime.com
