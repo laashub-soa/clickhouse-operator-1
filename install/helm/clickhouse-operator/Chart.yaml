@@ -4,9 +4,9 @@ name: clickhouse-operator
 home: https://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse
 sources:
   - https://gitlab.bj.sensetime.com/diamond/service-providers/clickhouse
-version: 0.1.0
-appVersion: 0.1.0
-icon: 
+icon: https://diamond.pages.gitlab.bj.sensetime.com/service-providers/documents/images/clickhouse.svg
+version: 0.2.0
+appVersion: 0.2.0
 maintainers:
   - email: wangjun3@sensetime.com
     name: Wang Jun

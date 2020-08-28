@@ -27,7 +27,6 @@ nodeSelector:
 #  - key: "node.kubernetes.io/unreachable"
 #    operator: "Exists"
 #    effect: "NoExecute"
-#    tolerationSeconds: 6000
 tolerations: {}
 
 ## Affinity for pod assignment
