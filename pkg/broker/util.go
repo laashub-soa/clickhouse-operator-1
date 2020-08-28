@@ -60,6 +60,9 @@ func validateBrokerAPIVersion(version string) bool {
 	return c.Check(v)
 }
 
-func getCHCServiceName(name, namespace string) string {
-	return fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)
+func getCHCServiceName(name, namespace string) []string {
+	return []string{
+		fmt.Sprintf("http://%s.%s.svc.cluster.local:8123", name, namespace),
+		fmt.Sprintf("tcp://%s.%s.svc.cluster.local:9000", name, namespace),
+	}
 }

@@ -540,21 +540,30 @@ func (b *CHCBrokerLogic) Bind(request *osb.BindRequest, c *broker.RequestContext
 	}
 
 	host := getCHCServiceName(instance.Name, instance.Namespace)
-	user, password := RandStringRunes(5), RandStringRunes(20)
+	namespaced := crclient.ObjectKey{Namespace: instance.Namespace, Name: fmt.Sprintf("%s-user-config", instance.Name)}
+	var cm corev1.ConfigMap
+	err = b.cli.Get(context.Background(), namespaced, &cm)
+	if err != nil {
+		return nil, osb.HTTPStatusCodeError{
+			StatusCode:   http.StatusServiceUnavailable,
+			ErrorMessage: &[]string{err.Error()}[0],
+		}
+	}
+	password := cm.Annotations["password"]
 	response := broker.BindResponse{
 		BindResponse: osb.BindResponse{
 			Credentials: map[string]interface{}{
-				"host":     []string{host},
-				"user":     user,
+				"host":     host,
+				"user":     "default",
 				"password": password,
 			},
 			Async: false,
 		},
 	}
 	b.bindings[request.BindingID] = &BindingInfo{
-		User:     user,
+		User:     "default",
 		Password: password,
-		Host:     []string{host},
+		Host:     host,
 	}
 
 	return &response, nil

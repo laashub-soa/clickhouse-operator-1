@@ -7,7 +7,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"math/rand"
 	"reflect"
+	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -116,4 +118,18 @@ func generateResourceList(cpuMem clickhousev1.CPUAndMem) v1.ResourceList {
 		resources[v1.ResourceMemory], _ = resource.ParseQuantity(memory)
 	}
 	return resources
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }

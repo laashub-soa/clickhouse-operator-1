@@ -28,9 +28,11 @@
         serviceinstance:
           create:
             parameters:
+              dataCapacity: "20Gi"
+              dataStorageClass: local-dynamic
               deletePVC: true
               shardsCount: 1
-              replicasCount: 2
+              replicasCount: 1
               pod:
                 tolerations:
                   - key: "project"

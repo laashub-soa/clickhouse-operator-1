@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"regexp"
 )
 
 const (
@@ -175,6 +176,15 @@ func (g *Generator) generateUsersXMl() string {
 	return g.cc.Spec.Users
 }
 
+func (g *Generator) getPassword() string {
+	pwd, _ := regexp.Compile(`<password>(.*)</password>`)
+	out := pwd.FindAllStringSubmatch(g.cc.Spec.Users, -1)
+	if len(out) > 0 {
+		return out[0][1]
+	}
+	return ""
+}
+
 func (g *Generator) GenerateRoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -232,6 +242,9 @@ func (g *Generator) generateUserConfigMap() *corev1.ConfigMap {
 			Namespace:       g.cc.Namespace,
 			Labels:          g.labelsForCluster(),
 			OwnerReferences: g.ownerReference(),
+			Annotations: map[string]string{
+				"password": g.getPassword(),
+			},
 		},
 		// Data contains several sections which are to be several xml chopConfig files
 		Data: data,

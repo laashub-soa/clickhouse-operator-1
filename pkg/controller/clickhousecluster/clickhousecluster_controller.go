@@ -29,6 +29,17 @@ import (
 
 var needUpdate bool
 
+const defaultUserXML = `
+<yandex>
+  <users>
+     <default>
+        <password>%s</password>
+        <access_management>1</access_management>
+     </default>
+  </users>
+</yandex>
+`
+
 // Add creates a new ClickHouseCluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -550,7 +561,8 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		changed = true
 	}
 	if c.Spec.Users == "" {
-		c.Spec.Users = "<yandex></yandex>"
+		password := RandStringRunes(10)
+		c.Spec.Users = fmt.Sprintf(defaultUserXML, password)
 		changed = true
 	}
 	if c.Spec.Resources.Limits == (clickhousev1.CPUAndMem{}) {
