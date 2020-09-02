@@ -31,6 +31,7 @@
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
               deletePVC: true
+              customSettings: ""
               shardsCount: 1
               replicasCount: 1
               pod:
@@ -60,8 +61,10 @@
           create:
             parameters:
               dataCapacity: "20Gi"
+              dataStorageClass: local-dynamic
               deletePVC: true
               shardsCount: 3
+              customSettings: ""
               replicasCount: 2
               pod:
                 tolerations:
