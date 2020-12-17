@@ -2,9 +2,11 @@ package clickhousecluster
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -12,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -134,6 +137,10 @@ func (g *Generator) generateRemoteServersXML() string {
 		for j := range replicas {
 			replicas[j].Host = g.FQDN(i, j, g.cc.Namespace)
 			replicas[j].Port = chDefaultClientPortNumber
+			for user, password := range g.XmlDecode() {
+				replicas[j].User = user
+				replicas[j].Password = password
+			}
 		}
 		shards[i].InternalReplication = true
 		shards[i].Replica = replicas
@@ -143,6 +150,50 @@ func (g *Generator) generateRemoteServersXML() string {
 		g.cc.Name: {shards},
 	}}
 	return ParseXML(servers)
+}
+
+func (g *Generator) XmlDecode() map[string]string {
+	result := make(map[string]string)
+	if strings.TrimSpace(g.cc.Spec.Users) == "" {
+		return result
+	}
+	decoder := xml.NewDecoder(strings.NewReader(g.cc.Spec.Users))
+	var startRecord bool
+	var lastKey, userKey string
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			return result
+		}
+		if err != nil {
+			logrus.Errorf("parse Fail: %s", err.Error())
+			return result
+		}
+		switch tp := token.(type) {
+		case xml.StartElement:
+			se := xml.StartElement(tp)
+			if lastKey == "users" || startRecord {
+				userKey = se.Name.Local
+				result[userKey] = ""
+				startRecord = false
+			}
+			lastKey = se.Name.Local
+		case xml.EndElement:
+			ee := xml.EndElement(tp)
+			if ee.Name.Local == userKey {
+				startRecord = true
+			}
+			if ee.Name.Local == "yandex" {
+				return result
+			}
+		case xml.CharData:
+			cd := xml.CharData(tp)
+			data := strings.TrimSpace(string(cd))
+			if len(data) != 0 && lastKey == "password" {
+				result[userKey] = data
+			}
+		}
+	}
 }
 
 func (g *Generator) generateZookeeperXML() string {

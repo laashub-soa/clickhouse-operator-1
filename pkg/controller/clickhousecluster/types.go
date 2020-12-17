@@ -21,8 +21,10 @@ const (
 )
 
 type Replica struct {
-	Host string `xml:"host"`
-	Port int    `xml:"port"`
+	Host     string `xml:"host"`
+	Port     int    `xml:"port"`
+	Password string `xml:"password"`
+	User     string `xml:"user"`
 }
 
 type Shard struct {
