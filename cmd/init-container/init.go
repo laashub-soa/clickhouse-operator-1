@@ -41,12 +41,14 @@ func createZookeeperNode() error {
 		return err
 	}
 	for _, host := range zkc.Zookeeper.Nodes {
+		logrus.Infof("add zk node: %s/%s\n", host.Host, host.Port)
 		hosts = append(hosts, fmt.Sprintf("%s:%d", host.Host, host.Port))
 	}
 	conn, _, err := zk.Connect(hosts, time.Second*10)
 	if err != nil {
-		return err
+		return fmt.Errorf("connect zk err: %s", err.Error())
 	}
+
 	if zkc.Zookeeper.Identity != "" {
 		err = conn.AddAuth("digest", []byte(zkc.Zookeeper.Identity))
 		if err != nil {
