@@ -2,11 +2,9 @@ package clickhousecluster
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
-	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -14,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"regexp"
-	"strings"
 )
 
 const (
@@ -130,6 +127,18 @@ func (g *Generator) FQDN(shardID, replicasID int, namespace string) string {
 	return fmt.Sprintf("%s-%d.%s.%s.svc.cluster.local", statefulset, replicasID, serviceName, namespace)
 }
 
+func (g *Generator) FQDNs() []string {
+	hosts := make([]string, 0)
+	shards := make([]Shard, g.cc.Spec.ShardsCount)
+	for i := range shards {
+		for j := 0; j < int(g.cc.Spec.ReplicasCount); j++ {
+			host := g.FQDN(i, j, g.cc.Namespace)
+			hosts = append(hosts, host)
+		}
+	}
+	return hosts
+}
+
 func (g *Generator) generateRemoteServersXML() string {
 	shards := make([]Shard, g.cc.Spec.ShardsCount)
 	for i := range shards {
@@ -137,12 +146,12 @@ func (g *Generator) generateRemoteServersXML() string {
 		for j := range replicas {
 			replicas[j].Host = g.FQDN(i, j, g.cc.Namespace)
 			replicas[j].Port = chDefaultClientPortNumber
-			for user, password := range g.XmlDecode() {
+			for user, password := range g.getUserAndPassword() {
 				replicas[j].User = user
 				replicas[j].Password = password
 			}
 		}
-		shards[i].InternalReplication = true
+		shards[i].InternalReplication = false
 		shards[i].Replica = replicas
 	}
 
@@ -152,48 +161,8 @@ func (g *Generator) generateRemoteServersXML() string {
 	return ParseXML(servers)
 }
 
-func (g *Generator) XmlDecode() map[string]string {
-	result := make(map[string]string)
-	if strings.TrimSpace(g.cc.Spec.Users) == "" {
-		return result
-	}
-	decoder := xml.NewDecoder(strings.NewReader(g.cc.Spec.Users))
-	var startRecord bool
-	var lastKey, userKey string
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF {
-			return result
-		}
-		if err != nil {
-			logrus.Errorf("parse Fail: %s", err.Error())
-			return result
-		}
-		switch tp := token.(type) {
-		case xml.StartElement:
-			se := xml.StartElement(tp)
-			if lastKey == "users" || startRecord {
-				userKey = se.Name.Local
-				result[userKey] = ""
-				startRecord = false
-			}
-			lastKey = se.Name.Local
-		case xml.EndElement:
-			ee := xml.EndElement(tp)
-			if ee.Name.Local == userKey {
-				startRecord = true
-			}
-			if ee.Name.Local == "yandex" {
-				return result
-			}
-		case xml.CharData:
-			cd := xml.CharData(tp)
-			data := strings.TrimSpace(string(cd))
-			if len(data) != 0 && lastKey == "password" {
-				result[userKey] = data
-			}
-		}
-	}
+func (g *Generator) getUserAndPassword() map[string]string {
+	return decodeUsersXML(g.cc.Spec.Users)
 }
 
 func (g *Generator) generateZookeeperXML() string {
@@ -579,6 +548,7 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.statefulSetName(shardID),
 			Namespace:       g.cc.Namespace,
+			Annotations:     make(map[string]string),
 			Labels:          g.labelsForStatefulSet(shardID, g.cc.Labels),
 			OwnerReferences: g.ownerReference(),
 		},

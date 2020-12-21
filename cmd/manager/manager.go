@@ -23,7 +23,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
@@ -44,12 +44,24 @@ func printVersion() {
 	logrus.Infof("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH)
 }
 
-func Run(_ *cli.Context) error {
+func Flags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name:  "kube-config",
+			Usage: "specify the kube config path to be used",
+			Value: "",
+		},
+	}
+}
+
+func Run(ctx *cli.Context) error {
 	// The logger instantiated here can be changed to any logger
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
 	printVersion()
+
+	kubeConfigPath := ctx.String("kube-config")
 
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
@@ -58,15 +70,15 @@ func Run(_ *cli.Context) error {
 	}
 
 	// Get a config to talk to the apiserver
-	cfg, err := config.GetConfig()
+
+	cfg, err := getConfig(kubeConfigPath)
 	if err != nil {
 		logrus.Fatal(err, "")
 		return err
 	}
 
-	ctx := context.TODO()
 	// Become the leader before proceeding
-	err = leader.Become(ctx, "clickhouse-operator-lock")
+	err = leader.Become(context.Background(), "clickhouse-operator-lock")
 	if err != nil {
 		logrus.Fatal(err)
 		return err
@@ -105,11 +117,23 @@ func Run(_ *cli.Context) error {
 	logrus.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err = mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logrus.Fatal(err, "Manager exited non-zero")
 		return err
 	}
 	return nil
+}
+
+func getConfig(kubeConfigPath string) (*rest.Config, error) {
+	if kubeConfigPath == "" {
+		return rest.InClusterConfig()
+	}
+	config, err := clientcmd.LoadFromFile(kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
 }
 
 // CreateServiceMonitor will automatically create the prometheus-operator ServiceMonitor resources

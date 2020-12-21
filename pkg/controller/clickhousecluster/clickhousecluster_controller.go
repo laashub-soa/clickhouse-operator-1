@@ -13,6 +13,7 @@ import (
 	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -104,7 +105,6 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 
 	// Fetch the ClickHouseCluster
 	cc := &clickhousev1.ClickHouseCluster{}
-
 	err := r.client.Get(context.TODO(), request.NamespacedName, cc)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -124,7 +124,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	}
 
 	if cc.Annotations == nil {
-		cc.Annotations = make(map[string]string)
+		cc.Annotations = map[string]string{ClusterNewCreate: "true"}
 	}
 	if cc.Status.ShardStatus == nil {
 		cc.Status.ShardStatus = make(map[string]*clickhousev1.ShardStatus)
@@ -146,8 +146,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 
 	//Some changes are not allowed, so we need to recovery to old one
 	if r.CheckNonAllowedChanges(cc) {
-		err = r.recoveryCRD(cc)
-		if err != nil {
+		if err = r.recoveryCRD(cc); err != nil {
 			log.WithField("error", err).Error("recovery ClickHouseCluster error")
 			return requeue30, err
 		}
@@ -181,7 +180,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 
 	for shardID := 0; shardID < int(cc.Spec.ShardsCount); shardID++ {
 		var ready bool
-		if ready, err = r.reconcileShard(generator, shardID, status); err != nil {
+		if ready, err = r.reconcileShard(isClusterNewCreate(cc), generator, shardID, status); err != nil {
 			log.WithField("error", err).Error("reconcileShard error")
 			return requeue5, err
 		}
@@ -201,8 +200,71 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		}
 		needUpdate = true
 	}
-
+	cc.Annotations[ClusterNewCreate] = "false"
+	if err := r.createTablesInNewStatefulSet(cc, generator); err != nil {
+		return requeue5, err
+	}
 	return requeue5, nil
+}
+
+func (r *ReconcileClickHouseCluster) createTablesInNewStatefulSet(cc *clickhousev1.ClickHouseCluster,
+	generator *Generator) error {
+
+	var statefulSets = appsv1.StatefulSetList{}
+	err := r.client.List(context.TODO(), &statefulSets, &client.ListOptions{
+		Namespace: cc.Namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			ClusterLabelKey: cc.Name,
+		}),
+	})
+	if err != nil {
+		logrus.WithFields(
+			logrus.Fields{"namespace": cc.Namespace, "error": err}).
+			Error("list statefulset error")
+		return err
+	}
+
+	var needCreateTable bool
+
+	for _, sts := range statefulSets.Items {
+		if sts.Annotations[ClusterHostsChange] == "true" {
+			needCreateTable = true
+			break
+		}
+	}
+	if !needCreateTable {
+		logrus.Debugf("no need to create table for cluster: %s/%s", cc.Namespace, cc.Name)
+		return nil
+	}
+
+	hosts := generator.FQDNs()
+	scr := NewSchemer(cc)
+	if err = scr.StatefulSetCreateTables(cc.Name, hosts); err != nil {
+		logrus.WithFields(
+			logrus.Fields{"namespace": cc.Namespace, "error": err}).
+			Error("create table error")
+		return err
+	}
+
+	for _, sts := range statefulSets.Items {
+		sts := sts.DeepCopy()
+		if sts.Annotations == nil {
+			sts.Annotations = make(map[string]string)
+		}
+		sts.Annotations[ClusterHostsChange] = "false"
+		if err = r.client.Update(context.Background(), sts); err != nil {
+			logrus.WithFields(
+				logrus.Fields{"namespace": cc.Namespace, "error": err}).
+				Error("update statefulset error")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func isClusterNewCreate(cc *clickhousev1.ClickHouseCluster) bool {
+	return "true" == cc.Annotations[ClusterNewCreate]
 }
 
 func preventClusterDeletion(cc *clickhousev1.ClickHouseCluster, value bool) {
@@ -326,9 +388,9 @@ func (r *ReconcileClickHouseCluster) recoveryCRD(cc *clickhousev1.ClickHouseClus
 	return nil
 }
 
-func (r *ReconcileClickHouseCluster) reconcileShard(generator *Generator, shardID int, status *clickhousev1.ClickHouseClusterStatus) (bool, error) {
+func (r *ReconcileClickHouseCluster) reconcileShard(clusterNew bool, generator *Generator, shardID int, status *clickhousev1.ClickHouseClusterStatus) (bool, error) {
 	statefulSet := generator.generateStatefulSet(shardID)
-	if err := r.reconcileStatefulSet(statefulSet); err != nil {
+	if err := r.reconcileStatefulSet(clusterNew, statefulSet); err != nil {
 		logrus.WithFields(logrus.Fields{"namespace": statefulSet.Namespace, "name": statefulSet.Name, "error": err}).Error("create statefulSets error")
 		return false, err
 	}
@@ -374,6 +436,14 @@ func (r *ReconcileClickHouseCluster) CheckNonAllowedChanges(instance *clickhouse
 			Warningf("The Operator has refused the change on DataCapacity from [%s] to NewValue[%s]",
 				oldCRD.Spec.DataCapacity, instance.Spec.DataCapacity)
 		instance.Spec.DataCapacity = oldCRD.Spec.DataCapacity
+		return true
+	}
+	//ShardsCount change is forbidden
+	if instance.Spec.ShardsCount < oldCRD.Spec.ShardsCount {
+		logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
+			Warningf("The Operator has refused the reduce ShardsCount from [%d] to NewValue[%d]",
+				oldCRD.Spec.ShardsCount, instance.Spec.ShardsCount)
+		instance.Spec.ShardsCount = oldCRD.Spec.ShardsCount
 		return true
 	}
 	//DataStorage
@@ -463,6 +533,9 @@ func (r *ReconcileClickHouseCluster) reconcileConfigMap(configMap *corev1.Config
 		logrus.Debug("no need to update configmap")
 		return nil
 	}
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(fmt.Sprintf("%v", curConfigMap.Data), fmt.Sprintf("%v", configMap.Data), false)
+	logrus.Debugf(dmp.DiffPrettyText(diffs))
 
 	logrus.WithFields(logrus.Fields{
 		"configmap": configMap.Name,
@@ -470,7 +543,7 @@ func (r *ReconcileClickHouseCluster) reconcileConfigMap(configMap *corev1.Config
 	return r.client.Update(context.TODO(), configMap)
 }
 
-func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.StatefulSet) error {
+func (r *ReconcileClickHouseCluster) reconcileStatefulSet(clusterNew bool, statefulSet *appsv1.StatefulSet) error {
 	// Check whether object with such name already exists in k8s
 	var curStatefulSet appsv1.StatefulSet
 
@@ -482,6 +555,9 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.St
 			logrus.WithFields(logrus.Fields{
 				"statefulset": statefulSet.Name,
 				"namespace":   statefulSet.Namespace}).Info("Create StatefulSet")
+			if !clusterNew {
+				statefulSet.Annotations[ClusterHostsChange] = "true"
+			}
 			return r.client.Create(context.TODO(), statefulSet)
 		}
 		return err
@@ -491,6 +567,10 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(statefulSet *appsv1.St
 	if statefulSetsAreEqual(statefulSet, &curStatefulSet) {
 		logrus.Debug("no need to update staefulset")
 		return nil
+	}
+
+	if *statefulSet.Spec.Replicas > *curStatefulSet.Spec.Replicas {
+		statefulSet.Annotations[ClusterHostsChange] = "true"
 	}
 
 	logrus.WithFields(logrus.Fields{

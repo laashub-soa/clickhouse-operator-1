@@ -12,6 +12,8 @@ import (
 
 const configFile = "/etc/clickhouse-operator/config.yaml"
 
+//const configFile = "./tests/config/config.yaml"
+
 type DefaultConfig struct {
 	DefaultClickhouseImage         string                        `yaml:"default_clickhouse_image"`
 	DefaultClickhouseInitImage     string                        `yaml:"default_clickhouse_init_image"`

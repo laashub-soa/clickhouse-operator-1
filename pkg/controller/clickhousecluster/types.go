@@ -17,6 +17,11 @@ const (
 	CreateByLabelKey = "created-by"
 	ClusterLabelKey  = "clickhouse-cluster"
 
+	ClusterNewCreate     = "cluster-new-create"
+	StatefulSetNewCreate = "statefulSet-new-create"
+	LastReplicas         = "last_replicas"
+	ClusterHostsChange   = "cluster-hosts-change"
+
 	OperatorLabelKey = "clickhouse-operator"
 )
 
