@@ -1,9 +1,10 @@
 package clickhousecluster
 
 import (
+	"encoding/xml"
 	"fmt"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/sirupsen/logrus"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -100,8 +101,6 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 	sts1.Spec.UpdateStrategy = sts2.Spec.UpdateStrategy
 
 	if !apiequality.Semantic.DeepEqual(sts1.Spec, sts2.Spec) {
-		logrus.WithFields(logrus.Fields{"statefulset": sts1.Name,
-			"namespace": sts1.Namespace}).Info("Template is different: " + pretty.Compare(sts1.Spec, sts2.Spec))
 		return false
 	}
 
@@ -122,6 +121,84 @@ func generateResourceList(cpuMem clickhousev1.CPUAndMem) v1.ResourceList {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+// Retry
+func Retry(tries int, desc string, f func() error) error {
+	var err error
+	for try := 1; try <= tries; try++ {
+		err = f()
+		if err == nil {
+			// All ok, no need to retry more
+			if try > 1 {
+				// Done, but after some retries, this is not 'clean'
+				logrus.Infof("DONE attempt %d of %d: %s", try, tries, desc)
+			}
+			return nil
+		}
+
+		if try < tries {
+			// Try failed, need to sleep and retry
+			seconds := try * 5
+			logrus.Infof("FAILED attempt %d of %d, sleep %d sec and retry: %s", try, tries, seconds, desc)
+			select {
+			case <-time.After(time.Duration(seconds) * time.Second):
+			}
+		} else if tries == 1 {
+			// On single try do not put so much emotion. It just failed and user is not intended to retry
+			logrus.Infof("FAILED single try. No retries will be made for %s", desc)
+		} else {
+			// On last try no need to wait more
+			logrus.Infof("FAILED AND ABORT. All %d attempts: %s", tries, desc)
+		}
+	}
+
+	return err
+}
+
+func decodeUsersXML(users string) map[string]string {
+	result := make(map[string]string)
+	if strings.TrimSpace(users) == "" {
+		return result
+	}
+	decoder := xml.NewDecoder(strings.NewReader(users))
+	var startRecord bool
+	var lastKey, userKey string
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			return result
+		}
+		if err != nil {
+			logrus.Errorf("parse Fail: %s", err.Error())
+			return result
+		}
+		switch tp := token.(type) {
+		case xml.StartElement:
+			se := xml.StartElement(tp)
+			if lastKey == "users" || startRecord {
+				userKey = se.Name.Local
+				result[userKey] = ""
+				startRecord = false
+			}
+			lastKey = se.Name.Local
+		case xml.EndElement:
+			ee := xml.EndElement(tp)
+			if ee.Name.Local == userKey {
+				startRecord = true
+			}
+			if ee.Name.Local == "yandex" {
+				return result
+			}
+		case xml.CharData:
+			cd := xml.CharData(tp)
+			data := strings.TrimSpace(string(cd))
+			if len(data) != 0 && lastKey == "password" {
+				result[userKey] = data
+				return result
+			}
+		}
+	}
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")

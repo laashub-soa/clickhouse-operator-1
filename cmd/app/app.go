@@ -58,6 +58,7 @@ func main() {
 			{
 				Name:        "operator",
 				Description: "clickhouse operator",
+				Flags:       manager.Flags(),
 				Action: func(context *cli.Context) error {
 					return manager.Run(context)
 				},
