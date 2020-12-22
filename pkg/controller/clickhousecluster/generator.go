@@ -363,6 +363,11 @@ func (g *Generator) generateShardService(shardID int, statefulset *appsv1.Statef
 }
 
 func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet, shardID int) {
+	var user, password string
+	for u, p := range  g.getUserAndPassword() {
+		user = u
+		password = p
+	}
 	statefulset.Spec.Template = corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   statefulset.Name,
@@ -460,6 +465,16 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 					Name:          chDefaultExporterPortName,
 					ContainerPort: chDefaultExporterPortNumber,
 					Protocol:      "TCP",
+				},
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name: "CLICKHOUSE_PASSWORD",
+					Value: password,
+				},
+				{
+					Name: "CLICKHOUSE_USER",
+					Value: user,
 				},
 			},
 			Resources: corev1.ResourceRequirements{
