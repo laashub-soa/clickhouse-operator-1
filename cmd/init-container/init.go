@@ -63,7 +63,7 @@ func createZookeeperNode() error {
 			return err
 		}
 		if !exist {
-			_, err = conn.Create(path, []byte("hello"), 0, acls)
+			_, err = conn.Create(path, []byte("data"), 0, acls)
 			if err == nil {
 				logrus.Infof("create path: %s successfully", path)
 			}
@@ -89,7 +89,7 @@ func createZookeeperNode() error {
 	}(zkc.Zookeeper.Root, create)
 }
 
-func createMarosFile() error {
+func createMacrosFile() error {
 	pod := os.Getenv(PodName)
 	if pod == "" {
 		return fmt.Errorf("can not find pod name")
@@ -98,12 +98,12 @@ func createMarosFile() error {
 	if err != nil {
 		return err
 	}
-	maros := make(map[string]string)
-	err = json.Unmarshal(content, &maros)
+	macros := make(map[string]string)
+	err = json.Unmarshal(content, &macros)
 	if err != nil {
 		return err
 	}
-	if c, ok := maros[pod]; ok {
+	if c, ok := macros[pod]; ok {
 		err = ioutil.WriteFile(MacrosXML, []byte(c), 0644)
 		if err != nil {
 			return err
@@ -114,7 +114,7 @@ func createMarosFile() error {
 }
 
 func Run(_ *cli.Context) error {
-	err := createMarosFile()
+	err := createMacrosFile()
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return err

@@ -9,7 +9,7 @@ require (
 	github.com/go-openapi/spec v0.19.0
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
-	github.com/kylelemons/godebug v1.1.0
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/go-clickhouse v1.3.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/operator-framework/operator-sdk v0.12.0

@@ -193,11 +193,13 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return requeue30, err
 	}
 
+	log.Info(cc.DeletionTimestamp, cc.Spec.DeletePVC)
 	if cc.DeletionTimestamp != nil && cc.Spec.DeletePVC {
-		preventClusterDeletion(cc, false)
+		log.Info("deleting pvc")
 		if err = r.DeletePVCs(cc); err != nil {
 			log.WithField("error", err).Error("delete pvc error")
 		}
+		preventClusterDeletion(cc, false)
 		needUpdate = true
 	}
 	cc.Annotations[ClusterNewCreate] = "false"
@@ -293,6 +295,10 @@ func updateDeletePvcStrategy(cc *clickhousev1.ClickHouseCluster) {
 func (r *ReconcileClickHouseCluster) CheckDeletePVC(cc *clickhousev1.ClickHouseCluster) error {
 	var oldCRD clickhousev1.ClickHouseCluster
 	if cc.Annotations[clickhousev1.AnnotationLastApplied] == "" {
+		if cc.DeletionTimestamp == nil && cc.Spec.DeletePVC == true {
+			logrus.Info("add finalizer when initial deletePVC is set to true")
+			preventClusterDeletion(cc, true)
+		}
 		return nil
 	}
 
@@ -580,6 +586,7 @@ func (r *ReconcileClickHouseCluster) reconcileStatefulSet(clusterNew bool, state
 }
 
 func (r *ReconcileClickHouseCluster) DeletePVCs(cc *clickhousev1.ClickHouseCluster) error {
+	logrus.Info("in delete pvcs function.")
 	selector := map[string]string{
 		ClusterLabelKey: cc.Name,
 	}
@@ -589,6 +596,7 @@ func (r *ReconcileClickHouseCluster) DeletePVCs(cc *clickhousev1.ClickHouseClust
 		return err
 	}
 	for _, pvc := range lpvc.Items {
+		logrus.Info("", pvc.Name)
 		err = r.client.Delete(context.TODO(), &pvc)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"PVC": pvc.Name, "Namespace": cc.Namespace}).Error("Error Deleting PVC")
