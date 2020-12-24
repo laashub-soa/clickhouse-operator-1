@@ -198,7 +198,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return requeue30, err
 	}
 
-	log.Info(cc.DeletionTimestamp, cc.Spec.DeletePVC)
+	//log.Info(cc.DeletionTimestamp, cc.Spec.DeletePVC)
 	if cc.DeletionTimestamp != nil && cc.Spec.DeletePVC {
 		log.Info("deleting pvc")
 		if err = r.DeletePVCs(cc); err != nil {
@@ -207,10 +207,17 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		preventClusterDeletion(cc, false)
 		needUpdate = true
 	}
+
 	cc.Annotations[ClusterNewCreate] = "false"
-	if err := r.createTablesInNewStatefulSet(cc, generator); err != nil {
-		return requeue5, err
+	if cc.DeletionTimestamp == nil {
+		err := r.createTablesInNewStatefulSet(cc, generator)
+		if err != nil {
+			return requeue5, err
+		}
 	}
+	//if err := r.createTablesInNewStatefulSet(cc, generator); err != nil {
+	//	return requeue5, err
+	//}
 	return requeue5, nil
 }
 
