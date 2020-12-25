@@ -79,4 +79,5 @@ tags
 vendor
 bin
 coverage.txt
+vendor.tgz
 .DS_Store
