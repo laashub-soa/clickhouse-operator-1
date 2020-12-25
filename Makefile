@@ -1,8 +1,9 @@
 .PHONY: lint test coverage build image push deploy-operator deploy-broker install release package clean uninstall all-clean
 
-IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one
+IMAGE ?= registry.sensetime.com/diamond-dev/service-providers/clickhouse-all-in-one
 #TAG ?= $(shell git tag --sort=committerdate | tail -n 1)
-TAG ?= v1.1.3-testing
+TAG ?= UNKNOWN
+DOCKER_DIR ?= ~/.docker
 PULL ?= Always
 
 lint: ## Run all the linters
@@ -12,7 +13,7 @@ test:
 	echo 'mode: atomic' > coverage.txt && go test -covermode=atomic -coverprofile=coverage.txt -v -run="Test*" -timeout=30s ./...
 
 build: clean
-	go build -o bin/clickhouse-all-in-one -ldflags "-X version.Version=$(shell git describe)" cmd/app/app.go
+	go build -o bin/clickhouse-all-in-one -ldflags "-trimpath -X version.Version=$(shell git describe)" cmd/app/app.go
 
 image:
 	docker build --no-cache . -t "$(IMAGE):$(TAG)"
@@ -33,7 +34,7 @@ all-clean: uninstall## Delete all binary and resources related to clickhouse ser
 	kubectl delete crd clickhouse.service.diamond.sensetime.com
 
 push: image ## Pushes the image to docker registry
-	docker push "$(IMAGE):$(TAG)"
+	docker --config ${DOCKER_DIR} push "$(IMAGE):$(TAG)"
 
 deploy-operator: ## Deploys operator with helm
 	helm upgrade --install clickhouse-operator helm/clickhouse-operator --namespace clickhouse-system
