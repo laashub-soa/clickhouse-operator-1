@@ -364,7 +364,7 @@ func (g *Generator) generateShardService(shardID int, statefulset *appsv1.Statef
 
 func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet, shardID int) {
 	var user, password string
-	for u, p := range  g.getUserAndPassword() {
+	for u, p := range g.getUserAndPassword() {
 		user = u
 		password = p
 	}
@@ -469,11 +469,11 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			},
 			Env: []corev1.EnvVar{
 				{
-					Name: "CLICKHOUSE_PASSWORD",
+					Name:  "CLICKHOUSE_PASSWORD",
 					Value: password,
 				},
 				{
-					Name: "CLICKHOUSE_USER",
+					Name:  "CLICKHOUSE_USER",
 					Value: user,
 				},
 			},
