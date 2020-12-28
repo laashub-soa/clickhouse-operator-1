@@ -125,11 +125,6 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 
 	if cc.Annotations == nil {
 		cc.Annotations = map[string]string{ClusterNewCreate: "true"}
-
-		if cc.DeletionTimestamp == nil && cc.Spec.DeletePVC == true {
-			logrus.Info("add finalizer when initial deletePVC is set to true")
-			preventClusterDeletion(cc, true)
-		}
 	}
 	if cc.Status.ShardStatus == nil {
 		cc.Status.ShardStatus = make(map[string]*clickhousev1.ShardStatus)
@@ -307,6 +302,10 @@ func updateDeletePvcStrategy(cc *clickhousev1.ClickHouseCluster) {
 func (r *ReconcileClickHouseCluster) CheckDeletePVC(cc *clickhousev1.ClickHouseCluster) error {
 	var oldCRD clickhousev1.ClickHouseCluster
 	if cc.Annotations[clickhousev1.AnnotationLastApplied] == "" {
+		if cc.DeletionTimestamp == nil && cc.Spec.DeletePVC == true {
+			logrus.Info("add finalizer when initial deletePVC is set to true")
+			preventClusterDeletion(cc, true)
+		}
 		return nil
 	}
 
