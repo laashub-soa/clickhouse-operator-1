@@ -67,6 +67,7 @@ data:
             <flush_interval_milliseconds>10000</flush_interval_milliseconds>
         </part_log>
         <use_minimalistic_part_header_in_zookeeper>1</use_minimalistic_part_header_in_zookeeper>
+        <disable_internal_dns_cache>1</disable_internal_dns_cache>
     </yandex>
   04-clickhouse-prometheus.xml: |-
     <yandex>

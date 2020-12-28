@@ -3,9 +3,6 @@ package clickhousecluster
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"strings"
-
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"regexp"
 )
 
 const (
@@ -173,14 +171,15 @@ func (g *Generator) generateZookeeperXML() string {
 }
 
 func (g *Generator) generateSettingsXML() string {
-	settings := g.cc.Spec.CustomSettings
-	settings = strings.TrimSpace(settings)
-	if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
-		settings = strings.Trim(settings, "</yandex>")
-		settings = strings.Trim(settings, "<yandex>")
-		settings = "<yandex>" + "\n\t<disable_internal_dns_cache>1</disable_internal_dns_cache> " + settings + "</yandex>"
-	}
-	return fmt.Sprint(settings)
+	//settings := g.cc.Spec.CustomSettings
+	//settings = strings.TrimSpace(settings)
+	//if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
+	//	settings = strings.Trim(settings, "</yandex>")
+	//	settings = strings.Trim(settings, "<yandex>")
+	//	settings = "<yandex>" + "\n\t<disable_internal_dns_cache>1</disable_internal_dns_cache> " + settings + "</yandex>"
+	//}
+	//return fmt.Sprint(settings)
+	return g.cc.Spec.CustomSettings
 }
 
 func (g *Generator) generateAllMacrosJson() string {
