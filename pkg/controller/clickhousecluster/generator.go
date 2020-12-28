@@ -173,6 +173,7 @@ func (g *Generator) generateZookeeperXML() string {
 
 func (g *Generator) generateSettingsXML() string {
 	settings := g.cc.Spec.CustomSettings
+	settings = strings.TrimSpace(settings)
 	if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
 		settings = strings.Trim(settings, "</yandex>")
 		settings = strings.Trim(settings, "<yandex>")

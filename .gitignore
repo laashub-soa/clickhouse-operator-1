@@ -80,3 +80,4 @@ vendor
 bin
 coverage.txt
 .DS_Store
+/1.xml
