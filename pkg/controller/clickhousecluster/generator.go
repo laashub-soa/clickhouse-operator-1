@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -171,7 +172,13 @@ func (g *Generator) generateZookeeperXML() string {
 }
 
 func (g *Generator) generateSettingsXML() string {
-	return g.cc.Spec.CustomSettings
+	settings := g.cc.Spec.CustomSettings
+	if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
+		settings = strings.Trim(settings, "</yandex>")
+		settings = strings.Trim(settings, "<yandex>")
+		settings = "<yandex>" + "\n\t<disable_internal_dns_cache>1</disable_internal_dns_cache> " + settings + "</yandex>"
+	}
+	return fmt.Sprint(settings)
 }
 
 func (g *Generator) generateAllMacrosJson() string {
