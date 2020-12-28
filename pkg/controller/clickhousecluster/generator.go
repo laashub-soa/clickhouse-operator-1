@@ -3,6 +3,9 @@ package clickhousecluster
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,14 +14,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"regexp"
-	"strings"
 )
 
 const (
 	// ClickHouse open ports
 	chDefaultExporterPortName      = "exporter"
-	chDefaultExporterPortNumber    = 9116
+	chDefaultExporterPortNumber    = 9363
 	chDefaultHTTPPortName          = "http"
 	chDefaultHTTPPortNumber        = 8123
 	chDefaultClientPortName        = "client"

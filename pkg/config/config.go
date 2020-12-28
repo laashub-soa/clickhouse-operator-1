@@ -2,12 +2,13 @@ package config
 
 import (
 	"fmt"
-	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+
+	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const configFile = "/etc/clickhouse-operator/config.yaml"
