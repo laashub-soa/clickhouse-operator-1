@@ -17,7 +17,7 @@ code_scan:
   tags:
     - k8s
 
-pages:
+page:
   stage: UNIT-TEST
   services:
     - name: registry.sensetime.com/diamond/kind:v1.14.4
@@ -37,9 +37,9 @@ pages:
     - wget -O ~/.kube/config http://localhost:10080/config
     - kubectl create -f ./deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml --namespace clickhouse-system
     - make coverage && mkdir -p public && cp coverage.html public/index.html
-  artifacts:
-    paths:
-      - public
+#  artifacts:
+#    paths:
+#      - public
   tags:
     - k8s
 

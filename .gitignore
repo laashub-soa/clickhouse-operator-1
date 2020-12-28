@@ -80,4 +80,5 @@ vendor
 bin
 coverage.txt
 .DS_Store
-/1.xml
+1.xml
+vendor.tgz

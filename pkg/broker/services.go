@@ -81,6 +81,9 @@ func GetClickHouseClient(kubeConfigPath string) (client.Client, *monclientv1.Mon
 	cli, err := client.New(clientConfig, client.Options{
 		Scheme: s,
 	})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var ok bool
 	var mClient *monclientv1.MonitoringV1Client
