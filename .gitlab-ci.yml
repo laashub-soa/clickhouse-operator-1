@@ -3,6 +3,7 @@ stages:
   - UNIT-TEST
   - E2E
   - AMBER
+  - PACKAGE
 
 variables:
   TEST_NAMESPACE: "litmus"
@@ -67,3 +68,15 @@ replicated-merge-tree:
         done
       - bash -x ./tests/e2e/Replicated-Merge-Tree/test.sh user-defined-affinity test
 
+build-image:
+  stage: PACKAGE
+  image: registry.sensetime.com/diamond/service-providers/ci-tools:v1-beta
+  before_script:
+    -  mkdir -p /go/src/github.com/mackwong/ && ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
+    - wget -O /go/src/github.com/mackwong/clickhouse-operator/vendor.tgz http://file.intra.sensetime.com/f/6f9e66ffc8/?raw=1
+    - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
+  script:
+    - env
+    - cd /go/src/github.com/mackwong/clickhouse-operator && bash package.sh
+  only:
+    - tags
