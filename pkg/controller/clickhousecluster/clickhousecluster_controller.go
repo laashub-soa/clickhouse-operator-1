@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strconv"
+	"time"
+
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+
 	"github.com/mackwong/clickhouse-operator/pkg/config"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
-	"strconv"
-	"time"
 
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -153,6 +156,12 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	}
 
 	var generator = NewGenerator(r, cc)
+
+	serviceMonitor := generator.generateServiceMonitor()
+	if err := r.checkServiceMonitor(serviceMonitor); err != nil {
+		log.WithField("error", err).Error("check servicemonitor error")
+		return forget, err
+	}
 
 	roleBinding := generator.GenerateRoleBinding()
 	if err := r.reconcileRoleBinding(roleBinding); err != nil {
@@ -665,4 +674,26 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		changed = true
 	}
 	return changed
+}
+
+func (r *ReconcileClickHouseCluster) checkServiceMonitor(sm *monitoringv1.ServiceMonitor) error {
+	if r.scheme.IsGroupRegistered("monitoring.coreos.com") != true {
+		err := monitoringv1.AddToScheme(r.scheme)
+		if err != nil {
+			logrus.Error("cannot add monitorv1 to runtime scheme", err)
+			return err
+		}
+	}
+
+	oldSm := &monitoringv1.ServiceMonitor{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: sm.Namespace, Name: sm.Name}, oldSm)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logrus.Info("no servicemonitor, will create one ")
+			return r.client.Create(context.TODO(), sm)
+		}
+		logrus.WithField("error", err).Error("get servicemonitor error")
+		return err
+	}
+	return nil
 }

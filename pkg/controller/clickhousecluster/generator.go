@@ -3,6 +3,9 @@ package clickhousecluster
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"regexp"
 )
 
 const (
@@ -598,6 +600,45 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 	}
 
 	return statefulSet
+}
+
+func (g *Generator) generateServiceMonitor() *monitoringv1.ServiceMonitor {
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "clickhouse-" + g.cc.Name,
+			Namespace: g.cc.Namespace,
+			Labels: map[string]string{
+				"component":  "clickhouse",
+				"prometheus": "kube-prometheus",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "clickhouse.service.diamond.sensetime.com/v1",
+					Kind:       "ClickHouseCluster",
+					Name:       g.cc.Name,
+					UID:        g.cc.UID,
+				},
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					ClusterLabelKey:  g.cc.Name,
+					CreateByLabelKey: OperatorLabelKey,
+				},
+			},
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Port:     "exporter",
+					Path:     "/metrics",
+					Interval: "15s",
+				},
+			},
+			NamespaceSelector: monitoringv1.NamespaceSelector{MatchNames: []string{g.cc.Namespace}},
+			PodTargetLabels:   []string{"instance_name"},
+		},
+	}
+	return sm
 }
 
 // newVolumeForConfigMap returns corev1.Volume object with defined name
