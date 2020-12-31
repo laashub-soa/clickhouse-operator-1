@@ -30,7 +30,7 @@
             parameters:
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
-              deletePVC: true
+              deletePVC: false
               customSettings: ""
               shardsCount: 1
               replicasCount: 1
@@ -40,6 +40,18 @@
                     operator: "Equal"
                     value: "xxx"
                     effect: "NoExecute"
+              resources:
+                requests:
+                  cpu: '0.5'
+                  memory: 2Gi
+                limits:
+                  cpu: '0.5'
+                  memory: 2Gi
+          update:
+            parameters:
+              deletePVC: false
+              shardsCount: 1
+              replicasCount: 1
               resources:
                 requests:
                   cpu: '0.5'
@@ -62,7 +74,7 @@
             parameters:
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
-              deletePVC: true
+              deletePVC: false
               shardsCount: 3
               customSettings: ""
               replicasCount: 2
@@ -72,6 +84,18 @@
                     operator: "Equal"
                     value: "xxx"
                     effect: "NoExecute"
+              resources:
+                requests:
+                  cpu: '1'
+                  memory: 4Gi
+                limits:
+                  cpu: '1'
+                  memory: 4Gi
+          update:
+            parameters:
+              deletePVC: false
+              shardsCount: 3
+              replicasCount: 2
               resources:
                 requests:
                   cpu: '1'
