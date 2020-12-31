@@ -34,13 +34,21 @@ func ReadFromConfigMap(configPath string) (*[]osb.Service, error) {
 
 	for _, s := range services {
 		for _, p := range s.Plans {
-			if p.Schemas != nil && p.Schemas.ServiceInstance != nil && p.Schemas.ServiceInstance.Create != nil {
-				spec := ParametersSpec{}
-				err = mapstructure.Decode(p.Schemas.ServiceInstance.Create.Parameters, &spec)
-				if err != nil {
-					return nil, err
+			if p.Schemas != nil && p.Schemas.ServiceInstance != nil {
+				if p.Schemas.ServiceInstance.Create != nil {
+					spec := ParametersSpec{}
+					if err = mapstructure.Decode(p.Schemas.ServiceInstance.Create.Parameters, &spec); err != nil {
+						return nil, err
+					}
+					p.Schemas.ServiceInstance.Create.Parameters = spec
 				}
-				p.Schemas.ServiceInstance.Create.Parameters = spec
+				if p.Schemas.ServiceInstance.Update != nil {
+					spec := UpdateParametersSpec{}
+					if err = mapstructure.Decode(p.Schemas.ServiceInstance.Update.Parameters, &spec); err != nil {
+						return nil, err
+					}
+					p.Schemas.ServiceInstance.Update.Parameters = spec
+				}
 			}
 		}
 	}
@@ -102,6 +110,20 @@ func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) *v1.Clic
 		Spec:       spec.ToClickHouseClusterSpec(),
 	}
 	return clickhouse
+}
+
+type UpdateParametersSpec struct {
+	//DeletePVC defines if the PVC must be deleted when the cluster is deleted
+	//it is false by default
+	DeletePVC bool `json:"deletePVC,omitempty"`
+
+	//Shards count
+	ShardsCount int32 `json:"shardsCount,omitempty"`
+
+	//Replicas count
+	ReplicasCount int32 `json:"replicasCount,omitempty"`
+
+	Resources v1.ClickHouseResources `json:"resources,omitempty"`
 }
 
 type ParametersSpec v1.ClickHouseClusterSpec

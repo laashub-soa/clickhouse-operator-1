@@ -2,7 +2,7 @@
 
 IMAGE ?= registry.sensetime.com/diamond-dev/service-providers/clickhouse-all-in-one
 #TAG ?= $(shell git tag --sort=committerdate | tail -n 1)
-TAG ?= UNKNOWN
+TAG ?= latest
 DOCKER_DIR ?= ~/.docker
 PULL ?= Always
 
