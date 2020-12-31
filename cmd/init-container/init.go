@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
-	"github.com/samuel/go-zookeeper/zk"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	"github.com/samuel/go-zookeeper/zk"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -40,6 +41,12 @@ func createZookeeperNode() error {
 	if err := xml.Unmarshal(context, &zkc); err != nil {
 		return err
 	}
+
+	if zkc.Zookeeper == nil {
+		logrus.Info("no zookeeper configuration")
+		return nil
+	}
+
 	for _, host := range zkc.Zookeeper.Nodes {
 		logrus.Infof("add zk node: %s/%s\n", host.Host, host.Port)
 		hosts = append(hosts, fmt.Sprintf("%s:%d", host.Host, host.Port))

@@ -3,10 +3,13 @@ package clickhousecluster
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/samuel/go-zookeeper/zk"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 
@@ -20,7 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -110,7 +112,7 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	cc := &clickhousev1.ClickHouseCluster{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, cc)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			log.Info("Delete ClickHouseCluster")
 			return forget, nil
 		}
@@ -136,7 +138,16 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 	//Set Default Values
 	if cc.Status.Phase == "" {
 		needUpdate = r.setDefaults(cc, r.defaultConfig)
+
+		err = r.checkInitZookeeperCfg(cc)
+		if err != nil {
+			log.WithField("error", err).Error("check zookeeper configuration error")
+			// cannot continue until zookeeper is specified
+			return forget, err
+		}
 	}
+
+	r.formatZookeeper(cc)
 
 	err = r.CheckDeletePVC(cc)
 	if err != nil {
@@ -207,6 +218,13 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		log.Info("deleting pvc")
 		if err = r.DeletePVCs(cc); err != nil {
 			log.WithField("error", err).Error("delete pvc error")
+			return requeue5, err
+		}
+		// Indicate delete pvc means no longer need the data, delete zookeeper path as well
+		log.Info("deleting zookeeper path")
+		if err = r.deleteZookeeperPath(cc); err != nil {
+			log.WithField("error", err).Error("delete zookeeper path error")
+			return requeue5, err
 		}
 		preventClusterDeletion(cc, false)
 		needUpdate = true
@@ -468,6 +486,14 @@ func (r *ReconcileClickHouseCluster) CheckNonAllowedChanges(instance *clickhouse
 		instance.Spec.ShardsCount = oldCRD.Spec.ShardsCount
 		return true
 	}
+	//Add replicas without zookeeper is forbidden
+	if instance.Spec.ReplicasCount > oldCRD.Spec.ReplicasCount && instance.Spec.Zookeeper == nil {
+		logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
+			Warningf("The Operator has refused the add ReplicasCount from [%d] to NewValue[%d} without zookeeper"+
+				"configuration", oldCRD.Spec.ReplicasCount, instance.Spec.ReplicasCount)
+		instance.Spec.ReplicasCount = oldCRD.Spec.ReplicasCount
+		return true
+	}
 	//DataStorage
 	if instance.Spec.DataStorageClass != oldCRD.Spec.DataStorageClass {
 		logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
@@ -476,6 +502,13 @@ func (r *ReconcileClickHouseCluster) CheckNonAllowedChanges(instance *clickhouse
 		instance.Spec.DataStorageClass = oldCRD.Spec.DataStorageClass
 		return true
 	}
+	////Zookeeper Configuration change is forbidden
+	//if instance.Spec.Zookeeper != oldCRD.Spec.Zookeeper {
+	//	logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
+	//		Warningf("The Operator has refused any change on Zookeeper")
+	//	instance.Spec.Zookeeper = oldCRD.Spec.Zookeeper
+	//	return true
+	//}
 	if !reflect.DeepEqual(instance.Spec.Resources, oldCRD.Spec.Resources) {
 		logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
 			Warningf("The Operator has refused the change on Resources from [%v] to NewValue[%v]",
@@ -651,12 +684,12 @@ func (r *ReconcileClickHouseCluster) setDefaults(c *clickhousev1.ClickHouseClust
 		c.Spec.ReplicasCount = config.DefaultReplicasCount
 		changed = true
 	}
-	if c.Spec.Zookeeper == nil {
-		zkConfig := *config.DefaultZookeeper
-		zkConfig.Root = fmt.Sprintf("%s/%s/%s", zkConfig.Root, c.Namespace, c.Name)
-		c.Spec.Zookeeper = &zkConfig
-		changed = true
-	}
+	//if c.Spec.Zookeeper == nil {
+	//	zkConfig := *config.DefaultZookeeper
+	//	zkConfig.Root = fmt.Sprintf("%s/%s/%s", zkConfig.Root, c.Namespace, c.Name)
+	//	c.Spec.Zookeeper = &zkConfig
+	//	changed = true
+	//}
 	if c.Spec.DataStorageClass != "" && c.Spec.DataCapacity == "" {
 		c.Spec.DataCapacity = config.DefaultDataCapacity
 	}
@@ -688,12 +721,76 @@ func (r *ReconcileClickHouseCluster) checkServiceMonitor(sm *monitoringv1.Servic
 	oldSm := &monitoringv1.ServiceMonitor{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: sm.Namespace, Name: sm.Name}, oldSm)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			logrus.Info("no servicemonitor, will create one ")
 			return r.client.Create(context.TODO(), sm)
 		}
 		logrus.WithField("error", err).Error("get servicemonitor error")
 		return err
 	}
+	return nil
+}
+
+func (r *ReconcileClickHouseCluster) deleteZookeeperPath(cc *clickhousev1.ClickHouseCluster) error {
+	if cc.Spec.Zookeeper == nil {
+		return nil
+	}
+
+	hosts := make([]string, 0)
+	for _, host := range cc.Spec.Zookeeper.Nodes {
+		logrus.Infof("add zk node : %s/%s to delete list\n", host.Host, host.Port)
+		hosts = append(hosts, fmt.Sprintf("%s:%d", host.Host, host.Port))
+	}
+	conn, _, err := zk.Connect(hosts, time.Second*10)
+	if err != nil {
+		return fmt.Errorf("connect zk err: %s", err.Error())
+	}
+
+	if cc.Spec.Zookeeper.Identity != "" {
+		err = conn.AddAuth("digest", []byte(cc.Spec.Zookeeper.Identity))
+		if err != nil {
+			return err
+		}
+	}
+	defer conn.Close()
+	err = Deleteall(conn, cc.Spec.Zookeeper.Root)
+	if err != nil {
+		logrus.WithField("error", err).Errorf("failed to delete zookeeper path %s for clickhousecluster %s",
+			cc.Spec.Zookeeper.Root, cc.Name)
+		return err
+	}
+	return nil
+}
+
+func (r *ReconcileClickHouseCluster) checkInitZookeeperCfg(cc *clickhousev1.ClickHouseCluster) error {
+	if cc.Spec.Zookeeper != nil {
+		return nil
+	}
+
+	if cc.Spec.ReplicasCount == 1 {
+		return nil
+	}
+
+	return errors.New("must have zookeeper configuration when have replicas")
+
+}
+
+func (r *ReconcileClickHouseCluster) formatZookeeper(cc *clickhousev1.ClickHouseCluster) {
+	if cc.Spec.Zookeeper == nil {
+		return
+	}
+	// set clickhouse root node force
+	cc.Spec.Zookeeper.Root = "/clickhouse/tables/" + cc.Namespace + "/" + cc.Name
+
+	if cc.Spec.Zookeeper.OperationTimeoutMs == 0 {
+		cc.Spec.Zookeeper.OperationTimeoutMs = 10000
+	}
+	if cc.Spec.Zookeeper.SessionTimeoutMs == 0 {
+		cc.Spec.Zookeeper.SessionTimeoutMs = 30000
+	}
+}
+
+// TODO: recursively delete all nodes in zookeeper
+func Deleteall(conn *zk.Conn, root string) error {
 	return nil
 }

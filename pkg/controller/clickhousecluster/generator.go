@@ -168,6 +168,10 @@ func (g *Generator) getUserAndPassword() map[string]string {
 }
 
 func (g *Generator) generateZookeeperXML() string {
+	// no zookeeper specified
+	if g.cc.Spec.Zookeeper == nil {
+		return "<yandex></yandex>"
+	}
 	zk := Zookeeper{Zookeeper: g.cc.Spec.Zookeeper}
 	return ParseXML(zk)
 }

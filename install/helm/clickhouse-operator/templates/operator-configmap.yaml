@@ -16,14 +16,14 @@ data:
     default_shard_count: 1
     default_replicas_count: 1
     default_data_capacity: 10Gi
-    default_zookeeper:
-      nodes:
-        - host: zookeeper.{{ .Release.Namespace }}
-          port: 2181
-      session_timeout_ms: 30000
-      operation_timeout_ms: 10000
-      root: /clickhouse/tables
-      identity: user:password
+#    default_zookeeper:
+#      nodes:
+#        - host: zookeeper.{{ .Release.Namespace }}
+#          port: 2181
+#      session_timeout_ms: 30000
+#      operation_timeout_ms: 10000
+#      root: /clickhouse/tables
+#      identity: user:password
   01-clickhouse-listen.xml: |-
     <yandex>
         <!-- Listen wildcard address to allow accepting connections from other containers and host network. -->
