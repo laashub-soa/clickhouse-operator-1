@@ -790,7 +790,28 @@ func (r *ReconcileClickHouseCluster) formatZookeeper(cc *clickhousev1.ClickHouse
 	}
 }
 
-// TODO: recursively delete all nodes in zookeeper
+// Deleteall recursively delete all nodes in zookeeper
 func Deleteall(conn *zk.Conn, root string) error {
+	logrus.Info("for root", root)
+	cds, _, err := conn.Children(root)
+	if err != nil {
+		logrus.WithField("error", err).Error("fail to get children for ", root)
+		return err
+	}
+
+	if cds != nil {
+		for _, cd := range cds {
+			_ = Deleteall(conn, root+"/"+cd)
+		}
+	}
+
+	logrus.Info("deleting node ", root)
+	err = conn.Delete(root, -1)
+	if err != nil {
+		logrus.WithField("error", err).Error("fail to get delete node ", root)
+		return err
+	}
+
 	return nil
+
 }
