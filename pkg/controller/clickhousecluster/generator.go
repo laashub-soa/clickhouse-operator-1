@@ -27,9 +27,9 @@ const (
 	chDefaultInterServerPortName   = "interserver"
 	chDefaultInterServerPortNumber = 9009
 
-	ClickHouseContainerName         = "clickhouse"
-	ClickHouseExporterContainerName = "exporter"
-	InitContainerName               = "clickhouse-init"
+	ClickHouseContainerName = "clickhouse"
+	//ClickHouseExporterContainerName = "exporter"
+	InitContainerName = "clickhouse-init"
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
@@ -377,11 +377,6 @@ func (g *Generator) generateShardService(shardID int, statefulset *appsv1.Statef
 }
 
 func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet, shardID int) {
-	var user, password string
-	for u, p := range g.getUserAndPassword() {
-		user = u
-		password = p
-	}
 	statefulset.Spec.Template = corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   statefulset.Name,
@@ -469,37 +464,6 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			Resources: corev1.ResourceRequirements{
 				Requests: generateResourceList(g.cc.Spec.Resources.Requests),
 				Limits:   generateResourceList(g.cc.Spec.Resources.Limits),
-			},
-		},
-		{
-			Name:  ClickHouseExporterContainerName,
-			Image: g.rcc.defaultConfig.DefaultClickhouseExporterImage,
-			Ports: []corev1.ContainerPort{
-				{
-					Name:          chDefaultExporterPortName,
-					ContainerPort: chDefaultExporterPortNumber,
-					Protocol:      "TCP",
-				},
-			},
-			Env: []corev1.EnvVar{
-				{
-					Name:  "CLICKHOUSE_PASSWORD",
-					Value: password,
-				},
-				{
-					Name:  "CLICKHOUSE_USER",
-					Value: user,
-				},
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10mi",
-					Memory: "100mi",
-				}),
-				Limits: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10mi",
-					Memory: "100mi",
-				}),
 			},
 		},
 	}
