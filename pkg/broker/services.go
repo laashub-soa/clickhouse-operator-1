@@ -123,6 +123,8 @@ type UpdateParametersSpec struct {
 	//Replicas count
 	ReplicasCount int32 `json:"replicasCount,omitempty"`
 
+	// Pod defines the policy for pods owned by clickhouse operator.
+	// This field cannot be updated once the CR is created.
 	Resources v1.ClickHouseResources `json:"resources,omitempty"`
 }
 
