@@ -200,6 +200,33 @@ func (b *CHCBrokerLogic) GetCatalog(request *broker.RequestContext) (*broker.Cat
 	return response, nil
 }
 
+func (b *CHCBrokerLogic) doUpdate(instance *Instance) (err error) {
+	updateSpec := UpdateParametersSpec{}
+	if err = mapstructure.Decode(instance.Params, &updateSpec); err != nil {
+		return
+	}
+
+	chc := v1alpha1.ClickHouseCluster{}
+	namespaced := crclient.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+	err = b.cli.Get(context.Background(), namespaced, &chc)
+	if err != nil {
+		logrus.Errorf("get chc instance err: %s", err.Error())
+		return err
+	}
+	if chc.Spec.ShardsCount > updateSpec.ShardsCount {
+		return fmt.Errorf("can not reduce shard count from %d to %d", chc.Spec.ShardsCount, updateSpec.ShardsCount)
+	}
+	if updateSpec.ReplicasCount < 1 {
+		return fmt.Errorf("can not reduce replicas count to %d", updateSpec.ReplicasCount)
+	}
+	chc.Spec.ShardsCount = updateSpec.ShardsCount
+	chc.Spec.ReplicasCount = updateSpec.ReplicasCount
+	chc.Spec.DeletePVC = updateSpec.DeletePVC
+	chc.Spec.Resources = updateSpec.Resources
+
+	return b.cli.Update(context.Background(), &chc)
+}
+
 func (b *CHCBrokerLogic) doProvision(instance *Instance) (err error) {
 	planSpec := ParametersSpec{}
 	if err = mapstructure.Decode(instance.Params, &planSpec); err != nil {
@@ -634,7 +661,7 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 		}
 	}
 
-	err := b.doProvision(instance)
+	err := b.doUpdate(instance)
 	if err != nil {
 		description := err.Error()
 		return nil, osb.HTTPStatusCodeError{
