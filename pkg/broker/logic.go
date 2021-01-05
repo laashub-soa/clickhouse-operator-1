@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
 	"time"
+
+	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
+	"github.com/sirupsen/logrus"
 
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	v1alpha1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/mitchellh/mapstructure"
@@ -247,57 +246,7 @@ loop:
 		logrus.Errorf("get chc instance err: %s", err.Error())
 		return err
 	}
-	return b.doProvisionServiceMonitor(chc)
-}
-
-func (b *CHCBrokerLogic) doProvisionServiceMonitor(chc *v1alpha1.ClickHouseCluster) error {
-	if b.smCli == nil {
-		logrus.Warn("can not find servicemonitor resource")
-		return nil
-	}
-	sm := &monitoringv1.ServiceMonitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "clickhouse-" + chc.Name,
-			Namespace: chc.Namespace,
-			Labels: map[string]string{
-				"component":  "clickhouse",
-				"prometheus": "kube-prometheus",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "clickhouse.service.diamond.sensetime.com/v1",
-					Kind:       "ClickHouseCluster",
-					Name:       chc.Name,
-					UID:        chc.UID,
-				},
-			},
-		},
-		Spec: monitoringv1.ServiceMonitorSpec{
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					clickhousecluster.ClusterLabelKey:  chc.Name,
-					clickhousecluster.CreateByLabelKey: clickhousecluster.OperatorLabelKey,
-				},
-			},
-			Endpoints: []monitoringv1.Endpoint{
-				{
-					Port:     "exporter",
-					Path:     "/metrics",
-					Interval: "15s",
-				},
-			},
-			NamespaceSelector: monitoringv1.NamespaceSelector{MatchNames: []string{chc.Namespace}},
-			PodTargetLabels:   []string{"instance_name"},
-		},
-	}
-	_, err := b.smCli.ServiceMonitors(chc.Namespace).Create(sm)
-	if err != nil && errors.IsAlreadyExists(err) {
-		_, err = b.smCli.ServiceMonitors(chc.Namespace).Update(sm)
-	}
-	if err != nil {
-		logrus.Errorf("create service monitor err: %s", err.Error())
-	}
-	return err
+	return nil
 }
 
 func (b *CHCBrokerLogic) doDeprovision(instance *Instance) (err error) {

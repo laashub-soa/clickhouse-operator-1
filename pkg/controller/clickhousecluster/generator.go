@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strings"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -27,9 +27,9 @@ const (
 	chDefaultInterServerPortName   = "interserver"
 	chDefaultInterServerPortNumber = 9009
 
-	ClickHouseContainerName         = "clickhouse"
-	ClickHouseExporterContainerName = "exporter"
-	InitContainerName               = "clickhouse-init"
+	ClickHouseContainerName = "clickhouse"
+	//ClickHouseExporterContainerName = "exporter"
+	InitContainerName = "clickhouse-init"
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
@@ -168,19 +168,24 @@ func (g *Generator) getUserAndPassword() map[string]string {
 }
 
 func (g *Generator) generateZookeeperXML() string {
+	// no zookeeper specified
+	if g.cc.Spec.Zookeeper == nil {
+		return "<yandex></yandex>"
+	}
 	zk := Zookeeper{Zookeeper: g.cc.Spec.Zookeeper}
 	return ParseXML(zk)
 }
 
 func (g *Generator) generateSettingsXML() string {
-	settings := g.cc.Spec.CustomSettings
-	settings = strings.TrimSpace(settings)
-	if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
-		settings = strings.Trim(settings, "</yandex>")
-		settings = strings.Trim(settings, "<yandex>")
-		settings = "<yandex>" + "\n\t<disable_internal_dns_cache>1</disable_internal_dns_cache> " + settings + "</yandex>"
-	}
-	return fmt.Sprint(settings)
+	//settings := g.cc.Spec.CustomSettings
+	//settings = strings.TrimSpace(settings)
+	//if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
+	//	settings = strings.Trim(settings, "</yandex>")
+	//	settings = strings.Trim(settings, "<yandex>")
+	//	settings = "<yandex>" + "\n\t<disable_internal_dns_cache>1</disable_internal_dns_cache> " + settings + "</yandex>"
+	//}
+	//return fmt.Sprint(settings)
+	return g.cc.Spec.CustomSettings
 }
 
 func (g *Generator) generateAllMacrosJson() string {
@@ -372,11 +377,6 @@ func (g *Generator) generateShardService(shardID int, statefulset *appsv1.Statef
 }
 
 func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet, shardID int) {
-	var user, password string
-	for u, p := range g.getUserAndPassword() {
-		user = u
-		password = p
-	}
 	statefulset.Spec.Template = corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   statefulset.Name,
@@ -464,37 +464,6 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 			Resources: corev1.ResourceRequirements{
 				Requests: generateResourceList(g.cc.Spec.Resources.Requests),
 				Limits:   generateResourceList(g.cc.Spec.Resources.Limits),
-			},
-		},
-		{
-			Name:  ClickHouseExporterContainerName,
-			Image: g.rcc.defaultConfig.DefaultClickhouseExporterImage,
-			Ports: []corev1.ContainerPort{
-				{
-					Name:          chDefaultExporterPortName,
-					ContainerPort: chDefaultExporterPortNumber,
-					Protocol:      "TCP",
-				},
-			},
-			Env: []corev1.EnvVar{
-				{
-					Name:  "CLICKHOUSE_PASSWORD",
-					Value: password,
-				},
-				{
-					Name:  "CLICKHOUSE_USER",
-					Value: user,
-				},
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10mi",
-					Memory: "100mi",
-				}),
-				Limits: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10mi",
-					Memory: "100mi",
-				}),
 			},
 		},
 	}
@@ -599,6 +568,45 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 	}
 
 	return statefulSet
+}
+
+func (g *Generator) generateServiceMonitor() *monitoringv1.ServiceMonitor {
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "clickhouse-" + g.cc.Name,
+			Namespace: g.cc.Namespace,
+			Labels: map[string]string{
+				"component":  "clickhouse",
+				"prometheus": "kube-prometheus",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "clickhouse.service.diamond.sensetime.com/v1",
+					Kind:       "ClickHouseCluster",
+					Name:       g.cc.Name,
+					UID:        g.cc.UID,
+				},
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					ClusterLabelKey:  g.cc.Name,
+					CreateByLabelKey: OperatorLabelKey,
+				},
+			},
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Port:     "exporter",
+					Path:     "/metrics",
+					Interval: "15s",
+				},
+			},
+			NamespaceSelector: monitoringv1.NamespaceSelector{MatchNames: []string{g.cc.Namespace}},
+			PodTargetLabels:   []string{"instance_name"},
+		},
+	}
+	return sm
 }
 
 // newVolumeForConfigMap returns corev1.Volume object with defined name
