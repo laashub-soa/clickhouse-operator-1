@@ -31,12 +31,7 @@ metricService: true
 
 ## If true, create & deploy the zookeeper
 zookeeperConfig:
-  enable: true
-  replicas: 3
-  StoreageClass:
-    enable: false
-    storageClassName: local-dynamic
-    storage: 2Gi
+  enable: false
 
 debug:
   enabled: false
