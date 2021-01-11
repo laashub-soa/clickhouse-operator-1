@@ -79,3 +79,15 @@
                 limits:
                   cpu: '4'
                   memory: 16Gi
+          update:
+            parameters:
+              deletePVC: false
+              shardsCount: 1
+              replicasCount: 2
+              resources:
+                requests:
+                  cpu: '4'
+                  memory: 16Gi
+                limits:
+                  cpu: '4'
+                  memory: 16Gi
