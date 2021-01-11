@@ -13,7 +13,7 @@
       description: "v20.8+1分片1副本+4核16G"
       metadata:
         display_name: v20.8+1分片1副本+4核16G
-        specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
+        specification: "deletePVC: 在删除实例后是否删除PVC"
         tolerations: pod.tolerations
         nodeSelector: pod.nodeSelector
       free: true
@@ -52,7 +52,7 @@
       description: "v20.8+1分片2副本+4核16G"
       metadata:
         display_name: v20.8+1分片2副本+4核16G
-        specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
+        specification: "deletePVC: 在删除实例后是否删除PVC"
         tolerations: pod.tolerations
         nodeSelector: pod.nodeSelector
       free: true
