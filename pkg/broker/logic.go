@@ -219,10 +219,15 @@ func (b *CHCBrokerLogic) doUpdate(instance *Instance) (err error) {
 	if updateSpec.ReplicasCount < 1 {
 		return fmt.Errorf("can not reduce replicas count to %d", updateSpec.ReplicasCount)
 	}
+	if updateSpec.ReplicasCount > 1 && updateSpec.Zookeeper == nil {
+		return fmt.Errorf("cannot have replicas more than 1 unless provide zookeeper spec")
+	}
+
 	chc.Spec.ShardsCount = updateSpec.ShardsCount
 	chc.Spec.ReplicasCount = updateSpec.ReplicasCount
 	chc.Spec.DeletePVC = updateSpec.DeletePVC
 	chc.Spec.Resources = updateSpec.Resources
+	chc.Spec.Zookeeper = updateSpec.Zookeeper
 
 	return b.cli.Update(context.Background(), &chc)
 }
@@ -254,6 +259,12 @@ loop:
 			ServiceID:  instance.ServiceID,
 			PlanID:     instance.PlanID,
 		},
+	}
+
+	err = planSpec.validateZookeeper()
+	if err != nil {
+		logrus.Error("validate zookeeper config error ", err)
+		return err
 	}
 
 	chc := NewClickHouseCluster(&planSpec, meta)

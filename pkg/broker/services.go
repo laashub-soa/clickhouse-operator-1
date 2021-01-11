@@ -1,14 +1,16 @@
 package broker
 
 import (
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"errors"
 	"io/ioutil"
 	"reflect"
+
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/mackwong/clickhouse-operator/pkg/apis"
-	"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/mitchellh/mapstructure"
 	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
 	"gopkg.in/yaml.v2"
@@ -123,9 +125,9 @@ type UpdateParametersSpec struct {
 	//Replicas count
 	ReplicasCount int32 `json:"replicasCount,omitempty"`
 
-	// Pod defines the policy for pods owned by clickhouse operator.
-	// This field cannot be updated once the CR is created.
 	Resources v1.ClickHouseResources `json:"resources,omitempty"`
+
+	Zookeeper *v1.ZookeeperConfig `json:"zookeeper,omitempty"`
 }
 
 type ParametersSpec v1.ClickHouseClusterSpec
@@ -152,6 +154,13 @@ loop:
 
 func (p *ParametersSpec) ToClickHouseClusterSpec() v1.ClickHouseClusterSpec {
 	return v1.ClickHouseClusterSpec(*p)
+}
+
+func (p *ParametersSpec) validateZookeeper() error {
+	if p.ReplicasCount > 1 && p.Zookeeper == nil {
+		return errors.New("must specify zookeeper config when have more than 1 replica")
+	}
+	return nil
 }
 
 type BindingInfo struct {
