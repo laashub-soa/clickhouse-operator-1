@@ -15,13 +15,12 @@ const configFile = "/etc/clickhouse-operator/config.yaml"
 //const configFile = "./tests/config/config.yaml"
 
 type DefaultConfig struct {
-	DefaultClickhouseImage         string            `yaml:"default_clickhouse_image"`
-	DefaultClickhouseInitImage     string            `yaml:"default_clickhouse_init_image"`
-	DefaultClickhouseExporterImage string            `yaml:"default_clickhouse_exporter_image"`
-	DefaultShardCount              int32             `yaml:"default_shard_count"`
-	DefaultReplicasCount           int32             `yaml:"default_replicas_count"`
-	DefaultConfig                  []string          `yaml:"default_config"`
-	defaultXMLConfig               map[string]string `yaml:"default_xml_config"`
+	DefaultClickhouseImage     string            `yaml:"default_clickhouse_image"`
+	DefaultClickhouseInitImage string            `yaml:"default_clickhouse_init_image"`
+	DefaultShardCount          int32             `yaml:"default_shard_count"`
+	DefaultReplicasCount       int32             `yaml:"default_replicas_count"`
+	DefaultConfig              []string          `yaml:"default_config"`
+	defaultXMLConfig           map[string]string `yaml:"default_xml_config"`
 	//DefaultZookeeper               *clickhousev1.ZookeeperConfig `yaml:"default_zookeeper"`
 	DefaultDataCapacity string `yaml:"default_data_capacity"`
 }

@@ -8,11 +8,11 @@
     display_name: clickhouse service
     image_url: http://gitlab.bj.sensetime.com/uploads/-/system/project/avatar/10933/clickhouse-logo.png
   plans:
-    - name: standalone
+    - name: v20.8-standalone
       id: ebd00cf7-3d2a-465f-b10c-b9b90a01badf
-      description: "v19.16+1分片+0.5核2G"
+      description: "v20.8+1分片1副本+4核16G"
       metadata:
-        display_name: v19.16+1分片+0.5核2G
+        display_name: v20.8+1分片1副本+4核16G
         specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
         tolerations: pod.tolerations
         nodeSelector: pod.nodeSelector
@@ -42,16 +42,16 @@
                     effect: "NoExecute"
               resources:
                 requests:
-                  cpu: '0.5'
-                  memory: 2Gi
+                  cpu: '4'
+                  memory: 16Gi
                 limits:
-                  cpu: '0.5'
-                  memory: 2Gi
-    - name: cluster
+                  cpu: '4'
+                  memory: 16Gi
+    - name: v20.8-cluster
       id: 80009ea6-ac3c-4404-9073-2f889471a681
-      description: "v19.16+三分片+1核4G"
+      description: "v20.8+1分片2副本+4核16G"
       metadata:
-        display_name: v19.16+三分片+1核4G
+        display_name: v20.8+1分片2副本+4核16G
         specification: "baseImage: 基础镜像\n bootstrapImage: 预处理镜像\n version: 基础镜像版本\n deletePVC: 在删除实例后是否删除PVC"
         tolerations: pod.tolerations
         nodeSelector: pod.nodeSelector
@@ -63,7 +63,7 @@
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
               deletePVC: false
-              shardsCount: 3
+              shardsCount: 1
               customSettings: ""
               replicasCount: 2
               pod:
@@ -74,8 +74,8 @@
                     effect: "NoExecute"
               resources:
                 requests:
-                  cpu: '1'
-                  memory: 4Gi
+                  cpu: '4'
+                  memory: 16Gi
                 limits:
-                  cpu: '1'
-                  memory: 4Gi
+                  cpu: '4'
+                  memory: 16Gi
