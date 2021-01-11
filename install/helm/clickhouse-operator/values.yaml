@@ -2,7 +2,7 @@
 ##
 image:
   repository: registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one
-  tag: v1.1.1
+  tag: v1.0.0-alpha1
   pullPolicy: Always
   imagePullSecrets:
     enabled: false
