@@ -3,18 +3,20 @@ package clickhousecluster
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"math/rand"
 	"reflect"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
+	"strings"
+
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
-	"strings"
 )
 
 func doParse(v reflect.Value, indent int, father string) string {
@@ -82,7 +84,7 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 		sts1.Spec.Template.Spec.Containers[i].TerminationMessagePolicy = sts2.Spec.Template.Spec.Containers[i].TerminationMessagePolicy
 
 		sts1.Spec.Template.Spec.Containers[i].SecurityContext = sts2.Spec.Template.Spec.Containers[i].SecurityContext
-		sts1.Spec.Template.Spec.Containers[i].Resources = sts2.Spec.Template.Spec.Containers[i].Resources
+		//sts1.Spec.Template.Spec.Containers[i].Resources = sts2.Spec.Template.Spec.Containers[i].Resources
 	}
 
 	for i := 0; i < len(sts1.Spec.Template.Spec.InitContainers); i++ {
@@ -110,11 +112,18 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 func generateResourceList(cpuMem clickhousev1.CPUAndMem) v1.ResourceList {
 	cpu, memory := cpuMem.CPU, cpuMem.Memory
 	resources := v1.ResourceList{}
+	var err error
 	if cpu != "" {
-		resources[v1.ResourceCPU], _ = resource.ParseQuantity(cpu)
+		resources[v1.ResourceCPU], err = resource.ParseQuantity(cpu)
+		if err != nil {
+			logrus.Error("parse cpu failed", err)
+		}
 	}
 	if memory != "" {
-		resources[v1.ResourceMemory], _ = resource.ParseQuantity(memory)
+		resources[v1.ResourceMemory], err = resource.ParseQuantity(memory)
+		if err != nil {
+			logrus.Error("parse memory failed", err)
+		}
 	}
 	return resources
 }

@@ -509,13 +509,13 @@ func (r *ReconcileClickHouseCluster) CheckNonAllowedChanges(instance *clickhouse
 	//	instance.Spec.Zookeeper = oldCRD.Spec.Zookeeper
 	//	return true
 	//}
-	if !reflect.DeepEqual(instance.Spec.Resources, oldCRD.Spec.Resources) {
-		logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
-			Warningf("The Operator has refused the change on Resources from [%v] to NewValue[%v]",
-				oldCRD.Spec.Resources, instance.Spec.Resources)
-		instance.Spec.DataStorageClass = oldCRD.Spec.DataStorageClass
-		return true
-	}
+	//if !reflect.DeepEqual(instance.Spec.Resources, oldCRD.Spec.Resources) {
+	//	logrus.WithFields(logrus.Fields{"cluster": instance.Name}).
+	//		Warningf("The Operator has refused the change on Resources from [%v] to NewValue[%v]",
+	//			oldCRD.Spec.Resources, instance.Spec.Resources)
+	//	instance.Spec.DataStorageClass = oldCRD.Spec.DataStorageClass
+	//	return true
+	//}
 	return false
 }
 
