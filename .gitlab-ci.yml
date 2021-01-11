@@ -8,65 +8,65 @@ stages:
 variables:
   TEST_NAMESPACE: "litmus"
 
-code_scan:
-  stage: CODE_SCAN
-  image: registry.sensetime.com/security/codescan:latest
-  variables:
-    GO111MODULE: "off"
-  script:
-    - /opt/code_scan/sonar_full_scan.sh
-  tags:
-    - k8s
-
-page:
-  stage: UNIT-TEST
-  services:
-    - name: registry.sensetime.com/diamond/kind:v1.14.4
-      alias: minikube
-  image: registry.sensetime.com/wangjun3/golangci-lint
-  before_script:
-    - mkdir -p /go/src/github.com/mackwong/ ~/.kube/
-    - ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
-    - wget -O /go/src/github.com/mackwong/clickhouse-operator/vendor.tgz http://file.intra.sensetime.com/f/6f9e66ffc8/?raw=1
-    - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
-  script:
-    - make lint
-    - >
-      until curl -s --fail http://localhost:10080/kubernetes-ready; do
-        sleep 20;
-      done
-    - wget -O ~/.kube/config http://localhost:10080/config
-    - kubectl create -f ./deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml --namespace clickhouse-system
-    - make coverage && mkdir -p public && cp coverage.html public/index.html
-#  artifacts:
-#    paths:
-#      - public
-  tags:
-    - k8s
-
-replicated-merge-tree:
-    stage: E2E
-    services:
-      - name: registry.sensetime.com/diamond/kind:v1.14.4
-        alias: minikube
-    image: registry.sensetime.com/wangjun3/golangci-lint
-    script:
-      - mkdir -p ~/.kube/
-      - >
-        until curl -s --fail http://localhost:10080/kubernetes-ready; do
-          sleep 20;
-        done
-      - wget -O ~/.kube/config http://localhost:10080/config
-      - helm install --namespace clickhouse-system --name clickhouse-operator ./install/helm/clickhouse-operator --set zookeeperConfig.replicas=1 && sleep 2s
-      - kubectl create namespace test && kubectl create -f ./samples/user-defined-pod-affinity.yaml -n test && sleep 5s
-      - >
-        while true;do
-          phase=$(kubectl get chc user-defined-affinity -n test -o jsonpath='{.status.phase}')
-          if [ "${phase}" = "Running" ];then
-            break
-          fi
-        done
-      - bash -x ./tests/e2e/Replicated-Merge-Tree/test.sh user-defined-affinity test
+#code_scan:
+#  stage: CODE_SCAN
+#  image: registry.sensetime.com/security/codescan:latest
+#  variables:
+#    GO111MODULE: "off"
+#  script:
+#    - /opt/code_scan/sonar_full_scan.sh
+#  tags:
+#    - k8s
+#
+#page:
+#  stage: UNIT-TEST
+#  services:
+#    - name: registry.sensetime.com/diamond/kind:v1.14.4
+#      alias: minikube
+#  image: registry.sensetime.com/wangjun3/golangci-lint
+#  before_script:
+#    - mkdir -p /go/src/github.com/mackwong/ ~/.kube/
+#    - ln -s `pwd` /go/src/github.com/mackwong/clickhouse-operator
+#    - wget -O /go/src/github.com/mackwong/clickhouse-operator/vendor.tgz http://file.intra.sensetime.com/f/6f9e66ffc8/?raw=1
+#    - cd /go/src/github.com/mackwong/clickhouse-operator && tar xzf vendor.tgz
+#  script:
+#    - make lint
+#    - >
+#      until curl -s --fail http://localhost:10080/kubernetes-ready; do
+#        sleep 20;
+#      done
+#    - wget -O ~/.kube/config http://localhost:10080/config
+#    - kubectl create -f ./deploy/crds/clickhouse.service.diamond.sensetime.com_clickhouseclusters_crd.yaml --namespace clickhouse-system
+#    - make coverage && mkdir -p public && cp coverage.html public/index.html
+##  artifacts:
+##    paths:
+##      - public
+#  tags:
+#    - k8s
+#
+#replicated-merge-tree:
+#    stage: E2E
+#    services:
+#      - name: registry.sensetime.com/diamond/kind:v1.14.4
+#        alias: minikube
+#    image: registry.sensetime.com/wangjun3/golangci-lint
+#    script:
+#      - mkdir -p ~/.kube/
+#      - >
+#        until curl -s --fail http://localhost:10080/kubernetes-ready; do
+#          sleep 20;
+#        done
+#      - wget -O ~/.kube/config http://localhost:10080/config
+#      - helm install --namespace clickhouse-system --name clickhouse-operator ./install/helm/clickhouse-operator --set zookeeperConfig.replicas=1 && sleep 2s
+#      - kubectl create namespace test && kubectl create -f ./samples/user-defined-pod-affinity.yaml -n test && sleep 5s
+#      - >
+#        while true;do
+#          phase=$(kubectl get chc user-defined-affinity -n test -o jsonpath='{.status.phase}')
+#          if [ "${phase}" = "Running" ];then
+#            break
+#          fi
+#        done
+#      - bash -x ./tests/e2e/Replicated-Merge-Tree/test.sh user-defined-affinity test
 
 build-image:
   stage: PACKAGE
