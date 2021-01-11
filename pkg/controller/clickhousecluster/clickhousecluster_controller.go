@@ -155,6 +155,12 @@ func (r *ReconcileClickHouseCluster) Reconcile(request reconcile.Request) (recon
 		return forget, err
 	}
 
+	err = validateResource(cc)
+	if err != nil {
+		log.WithField("error", err).Error("validate Resource field error")
+		return forget, err
+	}
+
 	status := cc.Status.DeepCopy()
 	defer r.updateClickHouseStatus(cc, status)
 

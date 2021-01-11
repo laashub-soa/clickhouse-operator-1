@@ -112,18 +112,11 @@ func statefulSetsAreEqual(sts1, sts2 *appsv1.StatefulSet) bool {
 func generateResourceList(cpuMem clickhousev1.CPUAndMem) v1.ResourceList {
 	cpu, memory := cpuMem.CPU, cpuMem.Memory
 	resources := v1.ResourceList{}
-	var err error
 	if cpu != "" {
-		resources[v1.ResourceCPU], err = resource.ParseQuantity(cpu)
-		if err != nil {
-			logrus.Error("parse cpu failed", err)
-		}
+		resources[v1.ResourceCPU], _ = resource.ParseQuantity(cpu)
 	}
 	if memory != "" {
-		resources[v1.ResourceMemory], err = resource.ParseQuantity(memory)
-		if err != nil {
-			logrus.Error("parse memory failed", err)
-		}
+		resources[v1.ResourceMemory], _ = resource.ParseQuantity(memory)
 	}
 	return resources
 }
@@ -218,4 +211,24 @@ func RandStringRunes(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func validateResource(cc *clickhousev1.ClickHouseCluster) error {
+	_, err := resource.ParseQuantity(cc.Spec.Resources.Limits.Memory)
+	if err != nil {
+		return err
+	}
+	_, err = resource.ParseQuantity(cc.Spec.Resources.Limits.CPU)
+	if err != nil {
+		return err
+	}
+	_, err = resource.ParseQuantity(cc.Spec.Resources.Requests.Memory)
+	if err != nil {
+		return err
+	}
+	_, err = resource.ParseQuantity(cc.Spec.Resources.Requests.CPU)
+	if err != nil {
+		return err
+	}
+	return nil
 }
