@@ -30,7 +30,7 @@
             parameters:
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
-              deletePVC: true
+              deletePVC: false
               customSettings: ""
               shardsCount: 1
               replicasCount: 1
@@ -62,7 +62,7 @@
             parameters:
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
-              deletePVC: true
+              deletePVC: false
               shardsCount: 3
               customSettings: ""
               replicasCount: 2
