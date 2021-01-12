@@ -1,6 +1,6 @@
 .PHONY: lint test coverage build image push deploy-operator deploy-broker install release package clean uninstall all-clean
 
-IMAGE ?= registry.sensetime.com/diamond-dev/service-providers/clickhouse-all-in-one
+IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one
 #TAG ?= $(shell git tag --sort=committerdate | tail -n 1)
 TAG ?= latest
 DOCKER_DIR ?= ~/.docker
