@@ -157,7 +157,21 @@ func (p *ParametersSpec) ToClickHouseClusterSpec() v1.ClickHouseClusterSpec {
 }
 
 func (p *ParametersSpec) validateZookeeper() error {
-	if p.ReplicasCount > 1 && p.Zookeeper == nil {
+	if p.ReplicasCount == 1 {
+		return nil
+	}
+	if p.Zookeeper == nil || p.Zookeeper.Nodes == nil || p.Zookeeper.Nodes[0].Host == "" {
+		return errors.New("must specify zookeeper config when have more than 1 replica")
+	}
+
+	return nil
+}
+
+func (u *UpdateParametersSpec) validateZookeeper() error {
+	if u.ReplicasCount == 1 {
+		return nil
+	}
+	if u.Zookeeper == nil || u.Zookeeper.Nodes == nil || u.Zookeeper.Nodes[0].Host == "" {
 		return errors.New("must specify zookeeper config when have more than 1 replica")
 	}
 	return nil

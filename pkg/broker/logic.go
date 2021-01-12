@@ -219,8 +219,9 @@ func (b *CHCBrokerLogic) doUpdate(instance *Instance) (err error) {
 	if updateSpec.ReplicasCount < 1 {
 		return fmt.Errorf("can not reduce replicas count to %d", updateSpec.ReplicasCount)
 	}
-	if updateSpec.ReplicasCount > 1 && updateSpec.Zookeeper == nil {
-		return fmt.Errorf("cannot have replicas more than 1 unless provide zookeeper spec")
+	err = updateSpec.validateZookeeper()
+	if err != nil {
+		return err
 	}
 
 	chc.Spec.ShardsCount = updateSpec.ShardsCount
