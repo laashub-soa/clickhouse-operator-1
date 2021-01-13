@@ -70,8 +70,8 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 		services:  services,
 		cli:       cli,
 		smCli:     mCli,
-		instances: make(map[string]*Instance, 10),
-		bindings:  make(map[string]*BindingInfo, 10),
+		instances: make(map[string]*Instance),
+		bindings:  make(map[string]*BindingInfo),
 	}, nil
 }
 
@@ -93,7 +93,13 @@ var _ broker.Interface = &CHCBrokerLogic{}
 func (b *CHCBrokerLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
 	instanceID := item.Spec.ExternalID
 	serviceID := item.Spec.ClusterServiceClassName
+	if serviceID == "" && item.Spec.ClusterServiceClassRef != nil {
+		serviceID = item.Spec.ClusterServiceClassRef.Name
+	}
 	planID := item.Spec.ClusterServicePlanName
+	if planID == "" && item.Spec.ClusterServicePlanRef != nil {
+		planID = item.Spec.ClusterServicePlanRef.Name
+	}
 	parameters := make(map[string]interface{})
 
 	if item.Spec.Parameters != nil {
@@ -158,7 +164,7 @@ func (b *CHCBrokerLogic) Recovery() error {
 
 	for _, item := range serviceInstanceList.Items {
 		for _, service := range *b.services {
-			if item.Spec.ClusterServiceClassName == service.ID {
+			if item.Spec.ClusterServiceClassName == service.ID || item.Spec.ClusterServiceClassRef.Name == service.ID {
 				b.recoveryInstance(&item)
 			}
 		}
@@ -656,6 +662,15 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 		return nil, asyncRequiredError
 	}
 
+	if request.Parameters == nil {
+		return  &broker.UpdateInstanceResponse{
+			UpdateInstanceResponse: osb.UpdateInstanceResponse{
+				Async:        false,
+				OperationKey: &[]osb.OperationKey{UpdateOperation}[0],
+			},
+		}, nil
+	}
+
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
 		return nil, osb.HTTPStatusCodeError{
@@ -677,7 +692,7 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	if err != nil {
 		description := err.Error()
 		return nil, osb.HTTPStatusCodeError{
-			StatusCode:  http.StatusServiceUnavailable,
+			StatusCode:  http.StatusBadRequest,
 			Description: &description,
 		}
 	}

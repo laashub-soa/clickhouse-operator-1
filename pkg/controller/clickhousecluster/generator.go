@@ -172,6 +172,12 @@ func (g *Generator) generateZookeeperXML() string {
 	if g.cc.Spec.Zookeeper == nil {
 		return "<yandex></yandex>"
 	}
+	for _, node := range g.cc.Spec.Zookeeper.Nodes {
+		if "" == node.Host {
+			logrus.Info("node in zookeeper is null, skip to create zookeeper.xml")
+			return "<yandex></yandex>"
+		}
+	}
 	zk := Zookeeper{Zookeeper: g.cc.Spec.Zookeeper}
 	return ParseXML(zk)
 }
