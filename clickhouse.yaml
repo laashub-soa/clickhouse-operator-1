@@ -47,6 +47,10 @@
                 limits:
                   cpu: '4'
                   memory: 16Gi
+              zookeeper:
+                nodes:
+                  - host: ""
+                    port: 2181
           update:
             parameters:
               deletePVC: false
@@ -59,6 +63,10 @@
                 limits:
                   cpu: '4'
                   memory: 16Gi
+              zookeeper:
+                nodes:
+                  - host: ""
+                    port: 2181
 
     - name: v20.8-cluster
       id: 80009ea6-ac3c-4404-9073-2f889471a681

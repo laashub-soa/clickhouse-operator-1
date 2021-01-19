@@ -42,7 +42,7 @@ func createZookeeperNode() error {
 		return err
 	}
 
-	if zkc.Zookeeper == nil {
+	if zkc.Zookeeper == nil || zkc.Zookeeper.Nodes == nil || zkc.Zookeeper.Nodes[0].Host == "" {
 		logrus.Info("no zookeeper configuration")
 		return nil
 	}
