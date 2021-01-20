@@ -31,7 +31,7 @@
               dataCapacity: "20Gi"
               dataStorageClass: local-dynamic
               deletePVC: false
-              customSettings: ""
+              customSettings: "<yandex></yandex>"
               shardsCount: 1
               replicasCount: 1
               pod:
@@ -85,7 +85,7 @@
               dataStorageClass: local-dynamic
               deletePVC: false
               shardsCount: 1
-              customSettings: ""
+              customSettings: "<yandex></yandex>"
               replicasCount: 2
               pod:
                 tolerations:

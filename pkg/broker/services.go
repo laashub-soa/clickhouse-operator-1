@@ -117,7 +117,7 @@ func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) *v1.Clic
 type UpdateParametersSpec struct {
 	//DeletePVC defines if the PVC must be deleted when the cluster is deleted
 	//it is false by default
-	DeletePVC bool `json:"deletePVC,omitempty"`
+	DeletePVC bool `json:"deletePVC"`
 
 	//Shards count
 	ShardsCount int32 `json:"shardsCount,omitempty"`
