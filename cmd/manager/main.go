@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	init_container "github.com/mackwong/clickhouse-operator/cmd/init-container"
 	"github.com/mackwong/clickhouse-operator/pkg/cmds"
 	"github.com/mackwong/clickhouse-operator/version"
 	"github.com/sirupsen/logrus"
@@ -43,7 +42,7 @@ func main() {
 				Name:        "init",
 				Description: "prepare clickhouse server environment",
 				Action: func(context *cli.Context) error {
-					return init_container.Run(context)
+					return cmds.InitContainerRun(context)
 				},
 			},
 			{
