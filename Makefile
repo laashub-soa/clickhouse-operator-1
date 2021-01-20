@@ -46,6 +46,7 @@ tar: ## Deploys operator with helm
 generate: ## Deploys operator with helm
 	 operator-sdk generate k8s
 	 operator-sdk generate openapi
+	 operator-sdk generate crds
 
 deploy-broker: ## Deploys broker with helm
 	helm upgrade --install clickhouse-service-broker \
