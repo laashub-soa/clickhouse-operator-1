@@ -769,7 +769,7 @@ func (r *ReconcileClickHouseCluster) deleteZookeeperPath(cc *clickhousev1.ClickH
 }
 
 func (r *ReconcileClickHouseCluster) checkInitZookeeperCfg(cc *clickhousev1.ClickHouseCluster) error {
-	if cc.Spec.Zookeeper != nil {
+	if cc.Spec.Zookeeper != nil && cc.Spec.Zookeeper.Nodes != nil && cc.Spec.Zookeeper.Nodes[0].Host != "" {
 		return nil
 	}
 
