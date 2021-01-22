@@ -774,6 +774,8 @@ spec:
                 session_timeout_ms:
                   type: integer
               type: object
+          required:
+          - deletePVC
           type: object
         status:
           description: Remove subresources, cuz https://github.com/kubernetes/kubectl/issues/564
