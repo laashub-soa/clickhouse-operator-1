@@ -1,4 +1,4 @@
-package manager
+package cmds
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func printVersion() {
 	logrus.Infof("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH)
 }
 
-func Flags() []cli.Flag {
+func OperatorFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "kube-config",
@@ -46,7 +46,7 @@ func Flags() []cli.Flag {
 	}
 }
 
-func Run(ctx *cli.Context) error {
+func OperatorRun(ctx *cli.Context) error {
 	// The logger instantiated here can be changed to any logger
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating

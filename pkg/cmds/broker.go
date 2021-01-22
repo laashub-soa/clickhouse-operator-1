@@ -1,4 +1,4 @@
-package broker
+package cmds
 
 import (
 	"context"
@@ -36,7 +36,7 @@ var options struct {
 	KubeConfig           string
 }
 
-func Flags() []cli.Flag {
+func BrokerFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.IntFlag{
 			Name:  "port",
@@ -91,7 +91,7 @@ func Flags() []cli.Flag {
 	}
 }
 
-func Run(ctx *cli.Context) error {
+func BrokerRun(ctx *cli.Context) error {
 	logrus.Infof("Version is: %s", Version)
 
 	options.Port = ctx.Int("port")

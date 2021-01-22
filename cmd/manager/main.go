@@ -3,9 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	broker "github.com/mackwong/clickhouse-operator/cmd/broker"
-	init_container "github.com/mackwong/clickhouse-operator/cmd/init-container"
-	"github.com/mackwong/clickhouse-operator/cmd/manager"
+	"github.com/mackwong/clickhouse-operator/pkg/cmds"
 	"github.com/mackwong/clickhouse-operator/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -44,23 +42,23 @@ func main() {
 				Name:        "init",
 				Description: "prepare clickhouse server environment",
 				Action: func(context *cli.Context) error {
-					return init_container.Run(context)
+					return cmds.InitContainerRun(context)
 				},
 			},
 			{
 				Name:        "broker",
 				Description: "clickhouse broker for provision、bind...",
-				Flags:       broker.Flags(),
+				Flags:       cmds.BrokerFlags(),
 				Action: func(context *cli.Context) error {
-					return broker.Run(context)
+					return cmds.BrokerRun(context)
 				},
 			},
 			{
 				Name:        "operator",
 				Description: "clickhouse operator",
-				Flags:       manager.Flags(),
+				Flags:       cmds.OperatorFlags(),
 				Action: func(context *cli.Context) error {
-					return manager.Run(context)
+					return cmds.OperatorRun(context)
 				},
 			},
 		},

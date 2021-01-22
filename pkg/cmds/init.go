@@ -1,4 +1,4 @@
-package init_container
+package cmds
 
 import (
 	"encoding/json"
@@ -120,7 +120,7 @@ func createMacrosFile() error {
 	return fmt.Errorf("can not find %s in %s", pod, content)
 }
 
-func Run(_ *cli.Context) error {
+func InitContainerRun(_ *cli.Context) error {
 	err := createMacrosFile()
 	if err != nil {
 		logrus.Errorf(err.Error())

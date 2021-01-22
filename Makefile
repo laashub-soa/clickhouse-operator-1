@@ -13,7 +13,7 @@ test:
 	echo 'mode: atomic' > coverage.txt && go test -covermode=atomic -coverprofile=coverage.txt -v -run="Test*" -timeout=30s ./...
 
 build: clean
-	go build -o bin/clickhouse-all-in-one -ldflags "-trimpath -X version.Version=$(shell git describe)" cmd/app/app.go
+	go build -o bin/clickhouse-all-in-one -ldflags "-trimpath -X version.Version=$(shell git describe)" cmd/manager/main.go
 
 image:
 	docker build --no-cache . -t "$(IMAGE):$(TAG)"
@@ -46,6 +46,7 @@ tar: ## Deploys operator with helm
 generate: ## Deploys operator with helm
 	 operator-sdk generate k8s
 	 operator-sdk generate openapi
+	 operator-sdk generate crds
 
 deploy-broker: ## Deploys broker with helm
 	helm upgrade --install clickhouse-service-broker \
