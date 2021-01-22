@@ -5,7 +5,7 @@ IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one
 TAG ?= latest
 DOCKER_DIR ?= ~/.docker
 PULL ?= Always
-LDFLAGS ?= "-w -s -X 'github.com/mackwong/clickhouse-operator/version.Version=$(shell git describe)'"
+LDFLAGS ?= "-w -s -X 'github.com/mackwong/clickhouse-operator/version.Version=$(shell git describe --tags)'"
 
 lint: ## Run all the linters
 	golangci-lint run --fast --deadline 3m  --skip-dirs vendor ./...
