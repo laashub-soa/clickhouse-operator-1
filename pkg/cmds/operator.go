@@ -3,8 +3,6 @@ package cmds
 import (
 	"context"
 	"fmt"
-	"runtime"
-
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
@@ -30,12 +28,6 @@ var (
 	metricsPort int32 = 8383
 )
 
-func printVersion() {
-	logrus.Infof("Operator Version: %s", version.Version)
-	logrus.Infof("Go Version: %s", runtime.Version())
-	logrus.Infof("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH)
-}
-
 func OperatorFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
@@ -51,7 +43,7 @@ func OperatorRun(ctx *cli.Context) error {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
-	printVersion()
+	version.PrintVersion()
 
 	kubeConfigPath := ctx.String("kube-config")
 

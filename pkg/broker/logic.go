@@ -663,7 +663,7 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 	}
 
 	if request.Parameters == nil {
-		return  &broker.UpdateInstanceResponse{
+		return &broker.UpdateInstanceResponse{
 			UpdateInstanceResponse: osb.UpdateInstanceResponse{
 				Async:        false,
 				OperationKey: &[]osb.OperationKey{UpdateOperation}[0],

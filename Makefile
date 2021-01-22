@@ -5,6 +5,7 @@ IMAGE ?= registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one
 TAG ?= latest
 DOCKER_DIR ?= ~/.docker
 PULL ?= Always
+LDFLAGS ?= "-w -s -X 'github.com/mackwong/clickhouse-operator/version.Version=$(shell git describe)'"
 
 lint: ## Run all the linters
 	golangci-lint run --fast --deadline 3m  --skip-dirs vendor ./...
@@ -13,7 +14,7 @@ test:
 	echo 'mode: atomic' > coverage.txt && go test -covermode=atomic -coverprofile=coverage.txt -v -run="Test*" -timeout=30s ./...
 
 build: clean
-	go build -o bin/clickhouse-all-in-one -ldflags "-trimpath -X version.Version=$(shell git describe)" cmd/manager/main.go
+	go build -o bin/clickhouse-all-in-one -ldflags ${LDFLAGS} cmd/manager/main.go
 
 image:
 	docker build --no-cache . -t "$(IMAGE):$(TAG)"
