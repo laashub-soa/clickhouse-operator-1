@@ -582,8 +582,9 @@ func (g *Generator) generateServiceMonitor() *monitoringv1.ServiceMonitor {
 			Name:      "clickhouse-" + g.cc.Name,
 			Namespace: g.cc.Namespace,
 			Labels: map[string]string{
-				"component":  "clickhouse",
-				"prometheus": "kube-prometheus",
+				"paas-component": "clickhouse",
+				"source":         "paas-monitoring",
+				"prometheus":     "kube-prometheus",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
