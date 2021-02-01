@@ -1,7 +1,7 @@
 name: clickhouse-service-broker
 description: a chart for the clickhouse service broker
-version: v1.0.0-alpha2
-appVersion: v1.0.0-alpha2
+version: v1.0.0
+appVersion: v1.0.0
 icon: https://diamond.pages.gitlab.bj.sensetime.com/service-providers/documents/images/clickhouse.svg
 maintainers:
   - name: Wang Jun
