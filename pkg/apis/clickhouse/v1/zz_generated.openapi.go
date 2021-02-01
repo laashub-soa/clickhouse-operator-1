@@ -149,6 +149,7 @@ func schema_pkg_apis_clickhouse_v1_ClickHouseClusterSpec(ref common.ReferenceCal
 						},
 					},
 				},
+				Required: []string{"deletePVC"},
 			},
 		},
 		Dependencies: []string{

@@ -91,4 +91,6 @@ rules:
   verbs:
   - "get"
   - "create"
+  - "list"
+  - "watch"
 {{- end }}

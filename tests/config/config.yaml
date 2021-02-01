@@ -1,0 +1,18 @@
+default_clickhouse_image: "registry.sensetime.com/diamond/service-providers/clickhouse-server:v19.16.2.2"
+default_clickhouse_init_image: "registry.sensetime.com/diamond/service-providers/clickhouse-all-in-one:test"
+default_clickhouse_exporter_image: "registry.sensetime.com/diamond/service-providers/clickhouse-exporter:v0.2.0"
+default_config:
+  - ./tests/config/01-clickhouse-listen.xml
+  - ./tests/config/02-clickhouse-logger.xml
+  - ./tests/config/03-clickhouse-others.xml
+default_shard_count: 1
+default_replicas_count: 1
+default_data_capacity: 10Gi
+default_zookeeper:
+  nodes:
+    - host: fake
+      port: 2181
+  session_timeout_ms: 30000
+  operation_timeout_ms: 10000
+  root: /clickhouse/tables
+  identity: user:password

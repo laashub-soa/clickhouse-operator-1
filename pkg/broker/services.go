@@ -1,14 +1,16 @@
 package broker
 
 import (
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"errors"
 	"io/ioutil"
 	"reflect"
+
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/mackwong/clickhouse-operator/pkg/apis"
-	"github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/mitchellh/mapstructure"
 	osb "gitlab.bj.sensetime.com/service-providers/go-open-service-broker-client/v2"
 	"gopkg.in/yaml.v2"
@@ -34,13 +36,21 @@ func ReadFromConfigMap(configPath string) (*[]osb.Service, error) {
 
 	for _, s := range services {
 		for _, p := range s.Plans {
-			if p.Schemas != nil && p.Schemas.ServiceInstance != nil && p.Schemas.ServiceInstance.Create != nil {
-				spec := ParametersSpec{}
-				err = mapstructure.Decode(p.Schemas.ServiceInstance.Create.Parameters, &spec)
-				if err != nil {
-					return nil, err
+			if p.Schemas != nil && p.Schemas.ServiceInstance != nil {
+				if p.Schemas.ServiceInstance.Create != nil {
+					spec := ParametersSpec{}
+					if err = mapstructure.Decode(p.Schemas.ServiceInstance.Create.Parameters, &spec); err != nil {
+						return nil, err
+					}
+					p.Schemas.ServiceInstance.Create.Parameters = spec
 				}
-				p.Schemas.ServiceInstance.Create.Parameters = spec
+				if p.Schemas.ServiceInstance.Update != nil {
+					spec := UpdateParametersSpec{}
+					if err = mapstructure.Decode(p.Schemas.ServiceInstance.Update.Parameters, &spec); err != nil {
+						return nil, err
+					}
+					p.Schemas.ServiceInstance.Update.Parameters = spec
+				}
 			}
 		}
 	}
@@ -81,6 +91,9 @@ func GetClickHouseClient(kubeConfigPath string) (client.Client, *monclientv1.Mon
 	cli, err := client.New(clientConfig, client.Options{
 		Scheme: s,
 	})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var ok bool
 	var mClient *monclientv1.MonitoringV1Client
@@ -99,6 +112,22 @@ func NewClickHouseCluster(spec *ParametersSpec, meta metav1.ObjectMeta) *v1.Clic
 		Spec:       spec.ToClickHouseClusterSpec(),
 	}
 	return clickhouse
+}
+
+type UpdateParametersSpec struct {
+	//DeletePVC defines if the PVC must be deleted when the cluster is deleted
+	//it is false by default
+	DeletePVC bool `json:"deletePVC"`
+
+	//Shards count
+	ShardsCount int32 `json:"shardsCount,omitempty"`
+
+	//Replicas count
+	ReplicasCount int32 `json:"replicasCount,omitempty"`
+
+	Resources v1.ClickHouseResources `json:"resources,omitempty"`
+
+	Zookeeper *v1.ZookeeperConfig `json:"zookeeper,omitempty"`
 }
 
 type ParametersSpec v1.ClickHouseClusterSpec
@@ -125,6 +154,27 @@ loop:
 
 func (p *ParametersSpec) ToClickHouseClusterSpec() v1.ClickHouseClusterSpec {
 	return v1.ClickHouseClusterSpec(*p)
+}
+
+func (p *ParametersSpec) validateZookeeper() error {
+	if p.ReplicasCount == 1 {
+		return nil
+	}
+	if p.Zookeeper == nil || p.Zookeeper.Nodes == nil || p.Zookeeper.Nodes[0].Host == "" {
+		return errors.New("must specify zookeeper config when have more than 1 replica")
+	}
+
+	return nil
+}
+
+func (u *UpdateParametersSpec) validateZookeeper() error {
+	if u.ReplicasCount == 1 {
+		return nil
+	}
+	if u.Zookeeper == nil || u.Zookeeper.Nodes == nil || u.Zookeeper.Nodes[0].Host == "" {
+		return errors.New("must specify zookeeper config when have more than 1 replica")
+	}
+	return nil
 }
 
 type BindingInfo struct {

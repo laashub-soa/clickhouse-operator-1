@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
 	"time"
+
+	monclientv1 "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
+	"github.com/sirupsen/logrus"
 
 	"github.com/kubernetes-sigs/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	v1alpha1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/mitchellh/mapstructure"
@@ -71,8 +70,8 @@ func NewCHCBrokerLogic(KubeConfig string, o Options) (*CHCBrokerLogic, error) {
 		services:  services,
 		cli:       cli,
 		smCli:     mCli,
-		instances: make(map[string]*Instance, 10),
-		bindings:  make(map[string]*BindingInfo, 10),
+		instances: make(map[string]*Instance),
+		bindings:  make(map[string]*BindingInfo),
 	}, nil
 }
 
@@ -94,7 +93,13 @@ var _ broker.Interface = &CHCBrokerLogic{}
 func (b *CHCBrokerLogic) recoveryInstance(item *v1beta1.ServiceInstance) {
 	instanceID := item.Spec.ExternalID
 	serviceID := item.Spec.ClusterServiceClassName
+	if serviceID == "" && item.Spec.ClusterServiceClassRef != nil {
+		serviceID = item.Spec.ClusterServiceClassRef.Name
+	}
 	planID := item.Spec.ClusterServicePlanName
+	if planID == "" && item.Spec.ClusterServicePlanRef != nil {
+		planID = item.Spec.ClusterServicePlanRef.Name
+	}
 	parameters := make(map[string]interface{})
 
 	if item.Spec.Parameters != nil {
@@ -159,7 +164,7 @@ func (b *CHCBrokerLogic) Recovery() error {
 
 	for _, item := range serviceInstanceList.Items {
 		for _, service := range *b.services {
-			if item.Spec.ClusterServiceClassName == service.ID {
+			if item.Spec.ClusterServiceClassName == service.ID || item.Spec.ClusterServiceClassRef.Name == service.ID {
 				b.recoveryInstance(&item)
 			}
 		}
@@ -201,6 +206,39 @@ func (b *CHCBrokerLogic) GetCatalog(request *broker.RequestContext) (*broker.Cat
 	return response, nil
 }
 
+func (b *CHCBrokerLogic) doUpdate(instance *Instance) (err error) {
+	updateSpec := UpdateParametersSpec{}
+	if err = mapstructure.Decode(instance.Params, &updateSpec); err != nil {
+		return
+	}
+
+	chc := v1alpha1.ClickHouseCluster{}
+	namespaced := crclient.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+	err = b.cli.Get(context.Background(), namespaced, &chc)
+	if err != nil {
+		logrus.Errorf("get chc instance err: %s", err.Error())
+		return err
+	}
+	if chc.Spec.ShardsCount > updateSpec.ShardsCount {
+		return fmt.Errorf("can not reduce shard count from %d to %d", chc.Spec.ShardsCount, updateSpec.ShardsCount)
+	}
+	if updateSpec.ReplicasCount < 1 {
+		return fmt.Errorf("can not reduce replicas count to %d", updateSpec.ReplicasCount)
+	}
+	err = updateSpec.validateZookeeper()
+	if err != nil {
+		return err
+	}
+
+	chc.Spec.ShardsCount = updateSpec.ShardsCount
+	chc.Spec.ReplicasCount = updateSpec.ReplicasCount
+	chc.Spec.DeletePVC = updateSpec.DeletePVC
+	chc.Spec.Resources = updateSpec.Resources
+	chc.Spec.Zookeeper = updateSpec.Zookeeper
+
+	return b.cli.Update(context.Background(), &chc)
+}
+
 func (b *CHCBrokerLogic) doProvision(instance *Instance) (err error) {
 	planSpec := ParametersSpec{}
 	if err = mapstructure.Decode(instance.Params, &planSpec); err != nil {
@@ -230,6 +268,12 @@ loop:
 		},
 	}
 
+	err = planSpec.validateZookeeper()
+	if err != nil {
+		logrus.Error("validate zookeeper config error ", err)
+		return err
+	}
+
 	chc := NewClickHouseCluster(&planSpec, meta)
 	ctx, cancel := context.WithTimeout(context.Background(), OperateTimeOut)
 	defer cancel()
@@ -247,57 +291,7 @@ loop:
 		logrus.Errorf("get chc instance err: %s", err.Error())
 		return err
 	}
-	return b.doProvisionServiceMonitor(chc)
-}
-
-func (b *CHCBrokerLogic) doProvisionServiceMonitor(chc *v1alpha1.ClickHouseCluster) error {
-	if b.smCli == nil {
-		logrus.Warn("can not find servicemonitor resource")
-		return nil
-	}
-	sm := &monitoringv1.ServiceMonitor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "clickhouse-" + chc.Name,
-			Namespace: chc.Namespace,
-			Labels: map[string]string{
-				"component":  "clickhouse",
-				"prometheus": "kube-prometheus",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "clickhouse.service.diamond.sensetime.com/v1",
-					Kind:       "ClickHouseCluster",
-					Name:       chc.Name,
-					UID:        chc.UID,
-				},
-			},
-		},
-		Spec: monitoringv1.ServiceMonitorSpec{
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					clickhousecluster.ClusterLabelKey:  chc.Name,
-					clickhousecluster.CreateByLabelKey: clickhousecluster.OperatorLabelKey,
-				},
-			},
-			Endpoints: []monitoringv1.Endpoint{
-				{
-					Port:     "exporter",
-					Path:     "/metrics",
-					Interval: "15s",
-				},
-			},
-			NamespaceSelector: monitoringv1.NamespaceSelector{MatchNames: []string{chc.Namespace}},
-			PodTargetLabels:   []string{"instance_name"},
-		},
-	}
-	_, err := b.smCli.ServiceMonitors(chc.Namespace).Create(sm)
-	if err != nil && errors.IsAlreadyExists(err) {
-		_, err = b.smCli.ServiceMonitors(chc.Namespace).Update(sm)
-	}
-	if err != nil {
-		logrus.Errorf("create service monitor err: %s", err.Error())
-	}
-	return err
+	return nil
 }
 
 func (b *CHCBrokerLogic) doDeprovision(instance *Instance) (err error) {
@@ -668,6 +662,15 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 		return nil, asyncRequiredError
 	}
 
+	if request.Parameters == nil {
+		return &broker.UpdateInstanceResponse{
+			UpdateInstanceResponse: osb.UpdateInstanceResponse{
+				Async:        false,
+				OperationKey: &[]osb.OperationKey{UpdateOperation}[0],
+			},
+		}, nil
+	}
+
 	instance, ok := b.instances[request.InstanceID]
 	if !ok {
 		return nil, osb.HTTPStatusCodeError{
@@ -685,11 +688,11 @@ func (b *CHCBrokerLogic) Update(request *osb.UpdateInstanceRequest, c *broker.Re
 		}
 	}
 
-	err := b.doProvision(instance)
+	err := b.doUpdate(instance)
 	if err != nil {
 		description := err.Error()
 		return nil, osb.HTTPStatusCodeError{
-			StatusCode:  http.StatusServiceUnavailable,
+			StatusCode:  http.StatusBadRequest,
 			Description: &description,
 		}
 	}

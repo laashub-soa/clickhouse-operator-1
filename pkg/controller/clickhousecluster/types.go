@@ -17,12 +17,19 @@ const (
 	CreateByLabelKey = "created-by"
 	ClusterLabelKey  = "clickhouse-cluster"
 
+	ClusterNewCreate     = "cluster-new-create"
+	StatefulSetNewCreate = "statefulSet-new-create"
+	LastReplicas         = "last_replicas"
+	ClusterHostsChange   = "cluster-hosts-change"
+
 	OperatorLabelKey = "clickhouse-operator"
 )
 
 type Replica struct {
-	Host string `xml:"host"`
-	Port int    `xml:"port"`
+	Host     string `xml:"host"`
+	Port     int    `xml:"port"`
+	Password string `xml:"password"`
+	User     string `xml:"user"`
 }
 
 type Shard struct {

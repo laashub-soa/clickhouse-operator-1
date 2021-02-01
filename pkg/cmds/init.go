@@ -1,17 +1,18 @@
-package init_container
+package cmds
 
 import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
-	"github.com/samuel/go-zookeeper/zk"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	v1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
+	"github.com/samuel/go-zookeeper/zk"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -40,13 +41,21 @@ func createZookeeperNode() error {
 	if err := xml.Unmarshal(context, &zkc); err != nil {
 		return err
 	}
+
+	if zkc.Zookeeper == nil || zkc.Zookeeper.Nodes == nil || zkc.Zookeeper.Nodes[0].Host == "" {
+		logrus.Info("no zookeeper configuration")
+		return nil
+	}
+
 	for _, host := range zkc.Zookeeper.Nodes {
+		logrus.Infof("add zk node: %s/%s\n", host.Host, host.Port)
 		hosts = append(hosts, fmt.Sprintf("%s:%d", host.Host, host.Port))
 	}
 	conn, _, err := zk.Connect(hosts, time.Second*10)
 	if err != nil {
-		return err
+		return fmt.Errorf("connect zk err: %s", err.Error())
 	}
+
 	if zkc.Zookeeper.Identity != "" {
 		err = conn.AddAuth("digest", []byte(zkc.Zookeeper.Identity))
 		if err != nil {
@@ -61,7 +70,7 @@ func createZookeeperNode() error {
 			return err
 		}
 		if !exist {
-			_, err = conn.Create(path, []byte("hello"), 0, acls)
+			_, err = conn.Create(path, []byte("data"), 0, acls)
 			if err == nil {
 				logrus.Infof("create path: %s successfully", path)
 			}
@@ -87,7 +96,7 @@ func createZookeeperNode() error {
 	}(zkc.Zookeeper.Root, create)
 }
 
-func createMarosFile() error {
+func createMacrosFile() error {
 	pod := os.Getenv(PodName)
 	if pod == "" {
 		return fmt.Errorf("can not find pod name")
@@ -96,12 +105,12 @@ func createMarosFile() error {
 	if err != nil {
 		return err
 	}
-	maros := make(map[string]string)
-	err = json.Unmarshal(content, &maros)
+	macros := make(map[string]string)
+	err = json.Unmarshal(content, &macros)
 	if err != nil {
 		return err
 	}
-	if c, ok := maros[pod]; ok {
+	if c, ok := macros[pod]; ok {
 		err = ioutil.WriteFile(MacrosXML, []byte(c), 0644)
 		if err != nil {
 			return err
@@ -111,8 +120,8 @@ func createMarosFile() error {
 	return fmt.Errorf("can not find %s in %s", pod, content)
 }
 
-func Run(_ *cli.Context) error {
-	err := createMarosFile()
+func InitContainerRun(_ *cli.Context) error {
+	err := createMacrosFile()
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return err

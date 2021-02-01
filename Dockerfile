@@ -2,7 +2,7 @@ FROM registry.sensetime.com/docker.io/golang:1.12.7-stretch
 ARG BUILD_DIR=/go/src/github.com/mackwong/clickhouse-operator/
 COPY . ${BUILD_DIR}
 WORKDIR ${BUILD_DIR}
-RUN go build -o ${BUILD_DIR}/bin/clickhouse-all-in-one ./cmd/app/app.go
+RUN make build
 
 FROM  registry.sensetime.com/docker.io/ubuntu:16.04
 ARG BUILD_DIR=/go/src/github.com/mackwong/clickhouse-operator/

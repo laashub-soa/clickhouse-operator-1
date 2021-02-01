@@ -3,16 +3,19 @@ module github.com/mackwong/clickhouse-operator
 go 1.13
 
 require (
+	github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd
 	github.com/Masterminds/semver v1.5.0
 	github.com/coreos/prometheus-operator v0.29.0
 	github.com/go-openapi/spec v0.19.0
 	github.com/kubernetes-sigs/service-catalog v0.2.2
 	github.com/kubernetes/client-go v11.0.0+incompatible // indirect
-	github.com/kylelemons/godebug v1.1.0
+	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/mailru/go-clickhouse v1.3.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/prometheus/client_golang v1.0.0
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
+	github.com/sergi/go-diff v1.0.0
 	github.com/shawn-hurley/osb-broker-k8s-lib v0.0.0-20180430125558-bed19ac36ffe
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0

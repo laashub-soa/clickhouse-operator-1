@@ -3,6 +3,9 @@ package clickhousecluster
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	clickhousev1 "github.com/mackwong/clickhouse-operator/pkg/apis/clickhouse/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,13 +14,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"regexp"
 )
 
 const (
 	// ClickHouse open ports
 	chDefaultExporterPortName      = "exporter"
-	chDefaultExporterPortNumber    = 9116
+	chDefaultExporterPortNumber    = 9363
 	chDefaultHTTPPortName          = "http"
 	chDefaultHTTPPortNumber        = 8123
 	chDefaultClientPortName        = "client"
@@ -25,9 +27,9 @@ const (
 	chDefaultInterServerPortName   = "interserver"
 	chDefaultInterServerPortNumber = 9009
 
-	ClickHouseContainerName         = "clickhouse"
-	ClickHouseExporterContainerName = "exporter"
-	InitContainerName               = "clickhouse-init"
+	ClickHouseContainerName = "clickhouse"
+	//ClickHouseExporterContainerName = "exporter"
+	InitContainerName = "clickhouse-init"
 
 	filenameRemoteServersXML = "remote_servers.xml"
 	filenameAllMacrosJSON    = "all-macros.json"
@@ -127,6 +129,18 @@ func (g *Generator) FQDN(shardID, replicasID int, namespace string) string {
 	return fmt.Sprintf("%s-%d.%s.%s.svc.cluster.local", statefulset, replicasID, serviceName, namespace)
 }
 
+func (g *Generator) FQDNs() []string {
+	hosts := make([]string, 0)
+	shards := make([]Shard, g.cc.Spec.ShardsCount)
+	for i := range shards {
+		for j := 0; j < int(g.cc.Spec.ReplicasCount); j++ {
+			host := g.FQDN(i, j, g.cc.Namespace)
+			hosts = append(hosts, host)
+		}
+	}
+	return hosts
+}
+
 func (g *Generator) generateRemoteServersXML() string {
 	shards := make([]Shard, g.cc.Spec.ShardsCount)
 	for i := range shards {
@@ -134,8 +148,12 @@ func (g *Generator) generateRemoteServersXML() string {
 		for j := range replicas {
 			replicas[j].Host = g.FQDN(i, j, g.cc.Namespace)
 			replicas[j].Port = chDefaultClientPortNumber
+			for user, password := range g.getUserAndPassword() {
+				replicas[j].User = user
+				replicas[j].Password = password
+			}
 		}
-		shards[i].InternalReplication = true
+		shards[i].InternalReplication = false
 		shards[i].Replica = replicas
 	}
 
@@ -145,12 +163,34 @@ func (g *Generator) generateRemoteServersXML() string {
 	return ParseXML(servers)
 }
 
+func (g *Generator) getUserAndPassword() map[string]string {
+	return decodeUsersXML(g.cc.Spec.Users)
+}
+
 func (g *Generator) generateZookeeperXML() string {
+	// no zookeeper specified
+	if g.cc.Spec.Zookeeper == nil {
+		return "<yandex></yandex>"
+	}
+	for _, node := range g.cc.Spec.Zookeeper.Nodes {
+		if "" == node.Host {
+			logrus.Debug("node in zookeeper is null, skip to create zookeeper.xml")
+			return "<yandex></yandex>"
+		}
+	}
 	zk := Zookeeper{Zookeeper: g.cc.Spec.Zookeeper}
 	return ParseXML(zk)
 }
 
 func (g *Generator) generateSettingsXML() string {
+	//settings := g.cc.Spec.CustomSettings
+	//settings = strings.TrimSpace(settings)
+	//if strings.Contains(settings, "<disable_internal_dns_cache>1</disable_internal_dns_cache>") != true {
+	//	settings = strings.Trim(settings, "</yandex>")
+	//	settings = strings.Trim(settings, "<yandex>")
+	//	settings = "<yandex>" + "\n\t<disable_internal_dns_cache>1</disable_internal_dns_cache> " + settings + "</yandex>"
+	//}
+	//return fmt.Sprint(settings)
 	return g.cc.Spec.CustomSettings
 }
 
@@ -432,27 +472,6 @@ func (g *Generator) setupStatefulSetPodTemplate(statefulset *appsv1.StatefulSet,
 				Limits:   generateResourceList(g.cc.Spec.Resources.Limits),
 			},
 		},
-		{
-			Name:  ClickHouseExporterContainerName,
-			Image: g.rcc.defaultConfig.DefaultClickhouseExporterImage,
-			Ports: []corev1.ContainerPort{
-				{
-					Name:          chDefaultExporterPortName,
-					ContainerPort: chDefaultExporterPortNumber,
-					Protocol:      "TCP",
-				},
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10mi",
-					Memory: "100mi",
-				}),
-				Limits: generateResourceList(clickhousev1.CPUAndMem{
-					CPU:    "10mi",
-					Memory: "100mi",
-				}),
-			},
-		},
 	}
 
 	// Add all ConfigMap objects as Volume objects of type ConfigMap
@@ -528,6 +547,7 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            g.statefulSetName(shardID),
 			Namespace:       g.cc.Namespace,
+			Annotations:     make(map[string]string),
 			Labels:          g.labelsForStatefulSet(shardID, g.cc.Labels),
 			OwnerReferences: g.ownerReference(),
 		},
@@ -554,6 +574,46 @@ func (g *Generator) generateStatefulSet(shardID int) *appsv1.StatefulSet {
 	}
 
 	return statefulSet
+}
+
+func (g *Generator) generateServiceMonitor() *monitoringv1.ServiceMonitor {
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "clickhouse-" + g.cc.Name,
+			Namespace: g.cc.Namespace,
+			Labels: map[string]string{
+				"paas-component": "clickhouse",
+				"source":         "paas-monitoring",
+				"prometheus":     "kube-prometheus",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "clickhouse.service.diamond.sensetime.com/v1",
+					Kind:       "ClickHouseCluster",
+					Name:       g.cc.Name,
+					UID:        g.cc.UID,
+				},
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					ClusterLabelKey:  g.cc.Name,
+					CreateByLabelKey: OperatorLabelKey,
+				},
+			},
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Port:     "exporter",
+					Path:     "/metrics",
+					Interval: "15s",
+				},
+			},
+			NamespaceSelector: monitoringv1.NamespaceSelector{MatchNames: []string{g.cc.Namespace}},
+			PodTargetLabels:   []string{"instance_name"},
+		},
+	}
+	return sm
 }
 
 // newVolumeForConfigMap returns corev1.Volume object with defined name
